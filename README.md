@@ -7,6 +7,7 @@ A centralized repository for deep thinking projects. Developed collaboratively b
 
 ### Requirements
 This code was developed and tested with Python 3.8.2.
+
 To install requirements:
 
 ```$ pip install -r requirements.txt```
