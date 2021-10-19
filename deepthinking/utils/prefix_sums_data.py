@@ -21,8 +21,8 @@ from easy_to_hard_data import PrefixSumDataset
 # pylint: disable=R0912, R0915, E1101, E1102, C0103, W0702, R0914, C0116, C0115, W0611
 
 
-def get_dataloaders(train_batch_size, test_batch_size, train_data, test_data,
-                    train_split=0.8, shuffle=True):
+def prepare_prefix_loader(train_batch_size, test_batch_size, train_data, test_data,
+                          train_split=0.8, shuffle=True):
 
     dataset = PrefixSumDataset("./data", num_bits=train_data)
     testset = PrefixSumDataset("./data", num_bits=test_data)

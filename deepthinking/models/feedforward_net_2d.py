@@ -12,7 +12,7 @@
 import torch
 from torch import nn
 
-from models.blocks import BasicBlock2D as BasicBlock
+from .blocks import BasicBlock2D as BasicBlock
 
 # Ignore statemenst for pylint:
 #     Too many branches (R0912), Too many statements (R0915), No member (E1101),

@@ -40,7 +40,7 @@ class FlippedChessPuzzleDataset(ChessPuzzleDataset):
         self.targets[rotate_idx] = rotated_targets
 
 
-def get_dataloaders(train_batch_size, test_batch_size, train_data, test_data, shuffle=True):
+def prepare_chess_loader(train_batch_size, test_batch_size, train_data, test_data, shuffle=True):
 
     trainset = FlippedChessPuzzleDataset("./data", idx_start=0, idx_end=train_data, who_moves=False,
                                          download=True)

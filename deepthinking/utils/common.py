@@ -17,12 +17,12 @@ from icecream import ic
 from torch.optim import SGD, Adam
 from torch.optim.lr_scheduler import MultiStepLR, CosineAnnealingLR
 
-from utils import chess_data, mazes_data, prefix_sums_data, warmup
-from models.dt_net_1d import dt_net_1d, dt_net_recallx_1d
-from models.dt_net_2d import dt_net_2d, dt_net_recallx_2d
-from models.feedforward_net_1d import feedforward_net_1d, feedforward_net_recallx_1d
-from models.feedforward_net_2d import feedforward_net_2d, feedforward_net_recallx_2d
+import deepthinking.models as models
+from .mazes_data import prepare_maze_loader
+from .prefix_sums_data import prepare_prefix_loader
+from .chess_data import prepare_chess_loader
 
+from .warmup import ExponentialWarmup
 # Ignore statements for pylint:
 #     Too many branches (R0912), Too many statements (R0915), No member (E1101),
 #     Not callable (E1102), Invalid name (C0103), No exception (W0702),
@@ -31,15 +31,27 @@ from models.feedforward_net_2d import feedforward_net_2d, feedforward_net_recall
 
 
 def get_dataloaders(args):
-    return eval(f"{args.problem}_data").get_dataloaders(train_batch_size=args.train_batch_size,
-                                                        test_batch_size=args.test_batch_size,
-                                                        train_data=args.train_data,
-                                                        test_data=args.test_data)
-
+    if args.problem == 'prefix_sums':
+        return prepare_prefix_loader(train_batch_size=args.train_batch_size,
+                                                                      test_batch_size=args.test_batch_size,
+                                                                      train_data=args.train_data,
+                                                                      test_data=args.test_data)
+    elif args.problem == 'mazes':
+        return prepare_maze_loader(train_batch_size=args.train_batch_size,
+                                                                      test_batch_size=args.test_batch_size,
+                                                                      train_data=args.train_data,
+                                                                      test_data=args.test_data)
+    elif args.problem == 'chess':
+        return prepare_chess_loader(train_batch_size=args.train_batch_size,
+                                                                      test_batch_size=args.test_batch_size,
+                                                                      train_data=args.train_data,
+                                                                      test_data=args.test_data)
+    else:
+        raise ValueError(f'Invalid problem spec. {args.problem}')
 
 def get_model(model, width, max_iters, in_channels=3):
     model = model.lower()
-    net = eval(model)(width=width, in_channels=in_channels, max_iters=max_iters)
+    net = getattr(models, model)(width=width, in_channels=in_channels, max_iters=max_iters)
     return net
 
 
@@ -73,9 +85,9 @@ def get_optimizer(optimizer_name, net, max_iters, epochs, lr, lr_decay, lr_sched
 
     if state_dict is not None:
         optimizer.load_state_dict(state_dict)
-        warmup_scheduler = warmup.ExponentialWarmup(optimizer, warmup_period=0)
+        warmup_scheduler = ExponentialWarmup(optimizer, warmup_period=0)
     else:
-        warmup_scheduler = warmup.ExponentialWarmup(optimizer, warmup_period=warmup_period)
+        warmup_scheduler = ExponentialWarmup(optimizer, warmup_period=warmup_period)
 
     if lr_decay.lower() == "step":
 
