@@ -212,7 +212,7 @@ def main():
     # load the best checkpoint
     model_path = os.path.join(args.checkpoint, f"{args.run_id}_best.pth")
     net, _, _ = dt.utils.load_model_from_checkpoint(args.model, model_path, args.width, args.problem,
-                                           args.max_iters, device)
+                                                    args.max_iters, device)
 
     test_acc, val_acc, train_acc = dt.test(net,
                                            [loaders["test"], loaders["val"], loaders["train"]],
