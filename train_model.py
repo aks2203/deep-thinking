@@ -194,6 +194,7 @@ def main():
 
             out_str = os.path.join(args.checkpoint,
                                    f"{args.run_id}_{'best' if best_so_far else ''}.pth")
+            best_so_far = False
 
             print(f"{dt.utils.now()} Saving model to: {out_str}")
             torch.save(state, out_str)
