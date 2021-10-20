@@ -30,19 +30,20 @@ class EnergyBlock(torch.nn.Module):
         self.recall = True  # has direct access to input data
 
         # Conjugate Net:
-        self.operator = nn.Conv1d(width, width, kernel_size=3, stride=1, padding=1, bias=False)
+        self.operator = nn.Conv1d(width + 1, width, kernel_size=3, stride=1, padding=1, bias=False)
 
     def forward(self, inputs):
         """This is a conjugate-net type energy as in p.74 of the tech report."""
         with torch.enable_grad():
             x = inputs[:, :self.width]
             x.requires_grad_()
-            Ex = (self.operator(inputs) * inputs).sum() + torch.where(x >= 0, x**2, torch.zeros_like(x)).sum()  # this is homogenous with bias
-            grads = torch.autograd.grad(Ex, inputs, create_graph=True)[0]
-        return inputs - self.step_size * grads
+            x = torch.nn.functional.layer_norm(x, x.shape[1:])
+            Ex = (self.operator(inputs) * x).sum() + torch.where(x >= 0, x**2, torch.zeros_like(x)).sum()  # this is homogenous with bias
+            grads = torch.autograd.grad(Ex, x, create_graph=True)[0]
+        return x - self.step_size * grads
 
     def energy(self, inputs):
-        return self.objective(inputs)
+        return (self.operator(inputs) * x).sum()
 
 class DTEnergy1D(nn.Module):
     """DeepThinking 1D Network model class"""
@@ -55,14 +56,6 @@ class DTEnergy1D(nn.Module):
 
         proj_conv = nn.Conv1d(1, width, kernel_size=3,
                               stride=1, padding=1, bias=False)
-
-        conv_recall = nn.Conv1d(width + 1, width, kernel_size=3,
-                                stride=1, padding=1, bias=False)
-
-        if self.recall:
-            recur_layers = [conv_recall, nn.ReLU()]
-        else:
-            recur_layers = []
 
 
         head_conv1 = nn.Conv1d(width, width, kernel_size=3,

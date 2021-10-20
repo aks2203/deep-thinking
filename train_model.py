@@ -22,7 +22,7 @@ import torch
 from icecream import ic
 
 import deepthinking as dt
-import dt.utils.logging_utils as lg
+import deepthinking.utils.logging_utils as lg
 
 # Ignore statements for pylint:
 #     Too many branches (R0912), Too many statements (R0915), No member (E1101),
@@ -148,8 +148,8 @@ def main():
             best_so_far = True
             highest_val_acc_so_far = val_acc
 
-        print(f"{now()} Training loss at epoch {epoch}: {loss}")
-        print(f"{now()} Training accuracy at epoch {epoch}: {acc}")
+        print(f"{dt.utils.now()} Training loss at epoch {epoch}: {loss}")
+        print(f"{dt.utils.now()} Training accuracy at epoch {epoch}: {acc}")
 
         # if the loss is nan, then stop the training
         if np.isnan(float(loss)):
@@ -173,9 +173,9 @@ def main():
                                                    args.test_iterations,
                                                    args.problem,
                                                    device, disable_tqdm=args.use_comet)
-            print(f"{now()} Training accuracy: {train_acc}")
-            print(f"{now()} Val accuracy: {val_acc}")
-            print(f"{now()} Test accuracy (hard data): {test_acc}")
+            print(f"{dt.utils.now()} Training accuracy: {train_acc}")
+            print(f"{dt.utils.now()} Val accuracy: {val_acc}")
+            print(f"{dt.utils.now()} Test accuracy (hard data): {test_acc}")
 
             tb_last = args.test_iterations[-1]
             lg.write_to_tb([train_acc[tb_last], val_acc[tb_last], test_acc[tb_last]],
@@ -195,7 +195,7 @@ def main():
             out_str = os.path.join(args.checkpoint,
                                    f"{args.run_id}_{'best' if best_so_far else ''}.pth")
 
-            print(f"{now()} Saving model to: {out_str}")
+            print(f"{dt.utils.now()} Saving model to: {out_str}")
             torch.save(state, out_str)
             lg.to_json(out_str, args.output, "checkpoint_path.json")
 
@@ -210,7 +210,7 @@ def main():
 
     # load the best checkpoint
     model_path = os.path.join(args.checkpoint, f"{args.run_id}_best.pth")
-    net, _, _ = load_model_from_checkpoint(args.model, model_path, args.width, args.problem,
+    net, _, _ = dt.utils.load_model_from_checkpoint(args.model, model_path, args.width, args.problem,
                                            args.max_iters, device)
 
     test_acc, val_acc, train_acc = dt.test(net,
@@ -219,9 +219,9 @@ def main():
                                            args.test_iterations,
                                            args.problem, device, disable_tqdm=args.use_comet)
 
-    print(f"{now()} Training accuracy: {train_acc}")
-    print(f"{now()} Val accuracy: {val_acc}")
-    print(f"{now()} Testing accuracy (hard data): {test_acc}")
+    print(f"{dt.utils.now()} Training accuracy: {train_acc}")
+    print(f"{dt.utils.now()} Val accuracy: {val_acc}")
+    print(f"{dt.utils.now()} Testing accuracy (hard data): {test_acc}")
 
     if comet_exp:
         lg.log_to_comet(comet_exp, train_acc, val_acc, test_acc, epoch, out_str)
