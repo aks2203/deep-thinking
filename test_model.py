@@ -16,9 +16,8 @@ from collections import OrderedDict
 import json
 import torch
 
-from utils.common import load_model_from_checkpoint, get_dataloaders, now
-from utils.logging_utils import to_json, get_dirs_for_saving
-from utils.testing_utils import test
+import deepthinking as dt
+import deepthinking.utils.logging_utils as lg
 
 
 # Ignore statements for pylint:
@@ -31,7 +30,7 @@ from utils.testing_utils import test
 def main():
 
     print("\n_________________________________________________\n")
-    print(now(), "train_model.py main() running.")
+    print(dt.utils.now(), "train_model.py main() running.")
 
     parser = argparse.ArgumentParser(description="Deep Thinking")
 
@@ -77,19 +76,19 @@ def main():
 
     assert 0 <= args.alpha <= 1, "Weighting for loss (alpha) not in [0, 1], exiting."
 
-    _, args.output = get_dirs_for_saving(args)
-    to_json(vars(args), args.output, "args.json")
+    _, args.output = lg.get_dirs_for_saving(args)
+    lg.to_json(vars(args), args.output, "args.json")
 
     ####################################################
     #               Dataset and Network and Optimizer
-    loaders = get_dataloaders(args)
+    loaders = dt.utils.get_dataloaders(args)
 
-    net, start_epoch, optimizer_state_dict = load_model_from_checkpoint(args.model,
-                                                                        args.model_path,
-                                                                        args.width,
-                                                                        args.problem,
-                                                                        args.max_iters,
-                                                                        device)
+    net, start_epoch, optimizer_state_dict = dt.utils.load_model_from_checkpoint(args.model,
+                                                                                 args.model_path,
+                                                                                 args.width,
+                                                                                 args.problem,
+                                                                                 args.max_iters,
+                                                                                 device)
 
     args.test_iterations.append(args.max_iters)
     args.test_iterations = list(set(args.test_iterations))
@@ -100,27 +99,25 @@ def main():
     print(f"This {args.model} has {pytorch_total_params/1e6:0.3f} million parameters.")
     ####################################################
 
-
     ####################################################
     #        Test
     print("==> Starting testing...")
 
     if args.quick_test:
-        test_acc = test(net, [loaders["test"]], args.test_mode, args.test_iterations,
-                        args.problem, device, disable_tqdm=args.use_comet)
+        test_acc = dt.test(net, [loaders["test"]], args.test_mode, args.test_iterations,
+                           args.problem, device)
         test_acc = test_acc[0]
         val_acc, train_acc = None, None
     else:
-        test_acc, val_acc, train_acc = test(net,
-                                            [loaders["test"], loaders["val"], loaders["train"]],
-                                            args.test_mode,
-                                            args.test_iterations,
-                                            args.problem, device)
+        test_acc, val_acc, train_acc = dt.test(net,
+                                               [loaders["test"], loaders["val"], loaders["train"]],
+                                               args.test_mode,
+                                               args.test_iterations,
+                                               args.problem, device)
 
-    print(f"{now()} Training accuracy: {train_acc}")
-    print(f"{now()} Val accuracy: {val_acc}")
-    print(f"{now()} Testing accuracy (hard data): {test_acc}")
-
+    print(f"{dt.utils.now()} Training accuracy: {train_acc}")
+    print(f"{dt.utils.now()} Val accuracy: {val_acc}")
+    print(f"{dt.utils.now()} Testing accuracy (hard data): {test_acc}")
 
     model_name_str = f"{args.model}_width={args.width}"
     stats = OrderedDict([("epochs", args.epochs),
@@ -143,7 +140,7 @@ def main():
                          ("train_batch_size", args.train_batch_size),
                          ("train_mode", args.train_mode),
                          ("alpha", args.alpha)])
-    to_json(stats, args.output, "stats.json")
+    lg.to_json(stats, args.output, "stats.json")
     ####################################################
 
 
