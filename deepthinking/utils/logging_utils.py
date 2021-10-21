@@ -11,7 +11,6 @@
 import json
 import os
 
-import comet_ml
 from torch.utils.tensorboard import SummaryWriter
 
 # Ignore statements for pylint:
@@ -56,6 +55,7 @@ def log_to_comet(comet_exp, train_acc, val_acc, test_acc, epoch, out_str=None):
 
 def setup_comet(args):
     if args.use_comet:
+        import comet_ml
         experiment = comet_ml.Experiment(project_name="deepthinking",
                                          auto_param_logging=False,
                                          auto_metric_logging=False,

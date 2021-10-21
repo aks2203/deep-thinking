@@ -21,7 +21,7 @@ from easy_to_hard_data import MazeDataset
 # pylint: disable=R0912, R0915, E1101, E1102, C0103, W0702, R0914, C0116, C0115, W0611
 
 
-def get_dataloaders(train_batch_size, test_batch_size, train_data, test_data, shuffle=True):
+def prepare_maze_loader(train_batch_size, test_batch_size, train_data, test_data, shuffle=True):
 
     train_data = MazeDataset("./data", train=True, size=train_data, download=True)
     testset = MazeDataset("./data", train=False, size=test_data, download=True)

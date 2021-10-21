@@ -11,21 +11,18 @@
 
 import argparse
 import os
-import sys
+
 import uuid
 from collections import OrderedDict
 
 # Comet must be imported before torch
-import comet_ml
+# import comet_ml
 import numpy as np
 import torch
 from icecream import ic
 
-from utils.common import load_model_from_checkpoint, get_dataloaders, get_optimizer, now
-import utils.logging_utils as lg
-from utils.testing_utils import test
-from utils.training_utils import train, TrainingSetup
-
+import deepthinking as dt
+import deepthinking.utils.logging_utils as lg
 
 # Ignore statements for pylint:
 #     Too many branches (R0912), Too many statements (R0915), No member (E1101),
@@ -37,7 +34,7 @@ from utils.training_utils import train, TrainingSetup
 def main():
 
     print("\n_________________________________________________\n")
-    print(now(), "train_model.py main() running.")
+    print(dt.utils.now(), "train_model.py main() running.")
 
     parser = argparse.ArgumentParser(description="Deep Thinking")
 
@@ -101,38 +98,38 @@ def main():
 
     ####################################################
     #               Dataset and Network and Optimizer
-    loaders = get_dataloaders(args)
+    loaders = dt.utils.get_dataloaders(args)
 
-    net, start_epoch, optimizer_state_dict = load_model_from_checkpoint(args.model,
-                                                                        args.model_path,
-                                                                        args.width,
-                                                                        args.problem,
-                                                                        args.max_iters,
-                                                                        device)
+    net, start_epoch, optimizer_state_dict = dt.utils.load_model_from_checkpoint(args.model,
+                                                                                 args.model_path,
+                                                                                 args.width,
+                                                                                 args.problem,
+                                                                                 args.max_iters,
+                                                                                 device)
 
     pytorch_total_params = sum(p.numel() for p in net.parameters())
     #print(net)
     print(f"This {args.model} has {pytorch_total_params/1e6:0.3f} million parameters.")
     print(f"Training will start at epoch {start_epoch}.")
 
-    optimizer, warmup_scheduler, lr_scheduler = get_optimizer(args.optimizer,
-                                                              net,
-                                                              args.max_iters,
-                                                              args.epochs,
-                                                              args.lr,
-                                                              args.lr_decay,
-                                                              args.lr_schedule,
-                                                              args.lr_factor,
-                                                              args.lr_throttle,
-                                                              args.warmup_period,
-                                                              optimizer_state_dict)
-    train_setup = TrainingSetup(optimizer=optimizer,
-                                scheduler=lr_scheduler,
-                                warmup=warmup_scheduler,
-                                clip=args.clip,
-                                alpha=args.alpha,
-                                max_iters=args.max_iters,
-                                problem=args.problem)
+    optimizer, warmup_scheduler, lr_scheduler = dt.utils.get_optimizer(args.optimizer,
+                                                                       net,
+                                                                       args.max_iters,
+                                                                       args.epochs,
+                                                                       args.lr,
+                                                                       args.lr_decay,
+                                                                       args.lr_schedule,
+                                                                       args.lr_factor,
+                                                                       args.lr_throttle,
+                                                                       args.warmup_period,
+                                                                       optimizer_state_dict)
+    train_setup = dt.TrainingSetup(optimizer=optimizer,
+                                   scheduler=lr_scheduler,
+                                   warmup=warmup_scheduler,
+                                   clip=args.clip,
+                                   alpha=args.alpha,
+                                   max_iters=args.max_iters,
+                                   problem=args.problem)
     ####################################################
 
     ####################################################
@@ -143,21 +140,20 @@ def main():
 
     for epoch in range(start_epoch, args.epochs):
 
-        loss, acc = train(net, loaders, args.train_mode, train_setup, device,
-                          disable_tqdm=args.use_comet)
-        val_acc = test(net, [loaders["val"]], args.test_mode, [args.max_iters],
-                       args.problem, device, disable_tqdm=args.use_comet)[0][args.max_iters]
+        loss, acc = dt.train(net, loaders, args.train_mode, train_setup, device,
+                             disable_tqdm=args.use_comet)
+        val_acc = dt.test(net, [loaders["val"]], args.test_mode, [args.max_iters],
+                          args.problem, device, disable_tqdm=args.use_comet)[0][args.max_iters]
         if val_acc > highest_val_acc_so_far:
             best_so_far = True
             highest_val_acc_so_far = val_acc
 
-        print(f"{now()} Training loss at epoch {epoch}: {loss}")
-        print(f"{now()} Training accuracy at epoch {epoch}: {acc}")
+        print(f"{dt.utils.now()} Training loss at epoch {epoch}: {loss}")
+        print(f"{dt.utils.now()} Training accuracy at epoch {epoch}: {acc}")
 
         # if the loss is nan, then stop the training
         if np.isnan(float(loss)):
-            print(f"{ic.format()} Loss is nan, exiting...")
-            sys.exit()
+            raise ValueError(f"{ic.format()} Loss is nan, exiting...")
 
         # TensorBoard loss writing
         writer.add_scalar("Loss/loss", loss, epoch)
@@ -169,17 +165,17 @@ def main():
                               epoch)
 
         if (epoch + 1) % args.val_period == 0:
-            test_acc, val_acc, train_acc = test(net,
-                                                [loaders["test"],
-                                                 loaders["val"],
-                                                 loaders["train"]],
-                                                args.test_mode,
-                                                args.test_iterations,
-                                                args.problem,
-                                                device, disable_tqdm=args.use_comet)
-            print(f"{now()} Training accuracy: {train_acc}")
-            print(f"{now()} Val accuracy: {val_acc}")
-            print(f"{now()} Test accuracy (hard data): {test_acc}")
+            test_acc, val_acc, train_acc = dt.test(net,
+                                                   [loaders["test"],
+                                                    loaders["val"],
+                                                    loaders["train"]],
+                                                   args.test_mode,
+                                                   args.test_iterations,
+                                                   args.problem,
+                                                   device, disable_tqdm=args.use_comet)
+            print(f"{dt.utils.now()} Training accuracy: {train_acc}")
+            print(f"{dt.utils.now()} Val accuracy: {val_acc}")
+            print(f"{dt.utils.now()} Test accuracy (hard data): {test_acc}")
 
             tb_last = args.test_iterations[-1]
             lg.write_to_tb([train_acc[tb_last], val_acc[tb_last], test_acc[tb_last]],
@@ -191,8 +187,7 @@ def main():
 
         # check to see if we should save
         save_now = (epoch + 1) % args.save_period == 0 or \
-                   (epoch + 1) == args.epochs or \
-                   best_so_far
+                   (epoch + 1) == args.epochs or best_so_far
 
         if save_now:
             state = {"net": net.state_dict(), "epoch": epoch, "optimizer": optimizer.state_dict()}
@@ -201,7 +196,7 @@ def main():
                                    f"{args.run_id}_{'best' if best_so_far else ''}.pth")
             best_so_far = False
 
-            print(f"{now()} Saving model to: {out_str}")
+            print(f"{dt.utils.now()} Saving model to: {out_str}")
             torch.save(state, out_str)
             lg.to_json(out_str, args.output, "checkpoint_path.json")
 
@@ -216,18 +211,18 @@ def main():
 
     # load the best checkpoint
     model_path = os.path.join(args.checkpoint, f"{args.run_id}_best.pth")
-    net, _, _ = load_model_from_checkpoint(args.model, model_path, args.width, args.problem,
-                                           args.max_iters, device)
+    net, _, _ = dt.utils.load_model_from_checkpoint(args.model, model_path, args.width, args.problem,
+                                                    args.max_iters, device)
 
-    test_acc, val_acc, train_acc = test(net,
-                                        [loaders["test"], loaders["val"], loaders["train"]],
-                                        args.test_mode,
-                                        args.test_iterations,
-                                        args.problem, device, disable_tqdm=args.use_comet)
+    test_acc, val_acc, train_acc = dt.test(net,
+                                           [loaders["test"], loaders["val"], loaders["train"]],
+                                           args.test_mode,
+                                           args.test_iterations,
+                                           args.problem, device, disable_tqdm=args.use_comet)
 
-    print(f"{now()} Training accuracy: {train_acc}")
-    print(f"{now()} Val accuracy: {val_acc}")
-    print(f"{now()} Testing accuracy (hard data): {test_acc}")
+    print(f"{dt.utils.now()} Training accuracy: {train_acc}")
+    print(f"{dt.utils.now()} Val accuracy: {val_acc}")
+    print(f"{dt.utils.now()} Testing accuracy (hard data): {test_acc}")
 
     if comet_exp:
         lg.log_to_comet(comet_exp, train_acc, val_acc, test_acc, epoch, out_str)
