@@ -49,7 +49,7 @@ def main():
 
     args = parser.parse_args()
     args.run_id = uuid.uuid1().hex
-    with open(args.args_path, 'r') as fp:
+    with open(args.args_path, "r") as fp:
         args_dict = json.load(fp)
     training_args = args_dict["0"]
 
@@ -67,9 +67,7 @@ def main():
     args.train_mode, args.test_mode = args.train_mode.lower(), args.test_mode.lower()
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
-    # turn off cuda benchmarking for train_mode 'dual_loop'
-    if not args.train_mode == "dual_loop":
-        torch.backends.cudnn.benchmark = True
+    torch.backends.cudnn.benchmark = True
 
     for arg in vars(args):
         print(f"{arg}: {getattr(args, arg)}")

@@ -36,7 +36,7 @@ def get_schoopy_plot(table, error_bars=True):
                  palette="dark",
                  dashes=True,
                  units=None,
-                 legend='auto',
+                 legend="auto",
                  ax=ax)
 
     if error_bars:
@@ -103,7 +103,7 @@ def main():
     ax.legend(fontsize=26, loc="upper left", bbox_to_anchor=(1.0, 0.8))
     x_max = table.test_iter.max()
     x = np.arange(20, x_max + 1, 10 if (x_max <= 100) else 100)
-    ax.tick_params(axis='y', labelsize=34)
+    ax.tick_params(axis="y", labelsize=34)
     ax.set_xticks(x)
     ax.set_xticklabels(x, fontsize=34, rotation=37)
     if args.xlim is None:
@@ -117,8 +117,8 @@ def main():
     ax.set_xlabel("Test-Time Iterations", fontsize=34)
     ax.set_ylabel("Accuracy (%)", fontsize=34)
     ax.set_title(plot_title, fontsize=34)
-    ax.spines['right'].set_visible(False)
-    ax.spines['top'].set_visible(False)
+    ax.spines["right"].set_visible(False)
+    ax.spines["top"].set_visible(False)
     plt.tight_layout()
 
     plt.savefig(args.plot_name)

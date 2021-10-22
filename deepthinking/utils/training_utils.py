@@ -9,7 +9,6 @@
     October 2021
 """
 
-import sys
 from dataclasses import dataclass
 from random import randrange
 
@@ -17,7 +16,7 @@ import torch
 from icecream import ic
 from tqdm import tqdm
 
-from .testing_utils import get_predicted
+from deepthinking.utils.testing_utils import get_predicted
 
 
 # Ignore statemenst for pylint:
@@ -59,11 +58,10 @@ def get_output_for_prog_loss(inputs, max_iters, net):
 
 
 def train(net, loaders, mode, train_setup, device, disable_tqdm=False):
-    try:
-        train_loss, acc = eval(f"train_{mode}")(net, loaders, train_setup, device, disable_tqdm)
-    except NameError:
-        print(f"{ic.format()}: train_{mode}() not implemented. Exiting.")
-        sys.exit()
+    if mode == "progressive":
+        train_loss, acc = train_progressive(net, loaders, train_setup, device, disable_tqdm)
+    else:
+        raise ValueError(f"{ic.format()}: train_{mode}() not implemented.")
     return train_loss, acc
 
 

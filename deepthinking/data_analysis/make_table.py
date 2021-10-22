@@ -22,7 +22,7 @@ def get_df(filepath, filter_at):
     bad_run_ids = []
     df = pd.DataFrame()
     for f_name in glob.glob(f"{filepath}/*/*/stats.json"):
-        with open(f_name, 'r') as fp:
+        with open(f_name, "r") as fp:
             data = json.load(fp)
         data.pop("num entries")
         for master_dict in data.values():

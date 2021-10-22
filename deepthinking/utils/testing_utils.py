@@ -9,8 +9,6 @@
     October 2021
 """
 
-import sys
-
 import einops
 import torch
 from icecream import ic
@@ -26,11 +24,12 @@ from tqdm import tqdm
 def test(net, loaders, mode, iters, problem, device, disable_tqdm=False):
     accs = []
     for loader in loaders:
-        try:
-            accuracy = eval(f"test_{mode}")(net, loader, iters, problem, device, disable_tqdm)
-        except NameError:
-            print(f"{ic.format()}: test_{mode}() not implemented. Exiting.")
-            sys.exit()
+        if mode == "default":
+            accuracy = test_default(net, loader, iters, problem, device, disable_tqdm)
+        elif mode == "max_conf":
+            accuracy = test_max_conf(net, loader, iters, problem, device, disable_tqdm)
+        else:
+            raise ValueError(f"{ic.format()}: test_{mode}() not implemented.")
         accs.append(accuracy)
     return accs
 
@@ -44,8 +43,8 @@ def get_predicted(inputs, outputs, problem):
     elif problem == "chess":
         outputs = outputs.view(outputs.size(0), outputs.size(1), -1)
         top_2 = torch.topk(outputs[:, 1], 2, dim=1)[0].min(dim=1)[0]
-        top_2 = einops.repeat(top_2, 'n -> n k', k=8)
-        top_2 = einops.repeat(top_2, 'n m -> n m k', k=8).view(-1, 64)
+        top_2 = einops.repeat(top_2, "n -> n k", k=8)
+        top_2 = einops.repeat(top_2, "n m -> n m k", k=8).view(-1, 64)
         outputs[:, 1][outputs[:, 1] < top_2] = -float("Inf")
         outputs[:, 0] = -float("Inf")
         predicted = outputs.argmax(1)

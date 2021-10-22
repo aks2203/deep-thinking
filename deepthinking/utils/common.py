@@ -9,7 +9,6 @@
     October 2021
 """
 
-import sys
 from datetime import datetime
 
 import torch
@@ -31,23 +30,23 @@ from .warmup import ExponentialWarmup
 
 
 def get_dataloaders(args):
-    if args.problem == 'prefix_sums':
+    if args.problem == "prefix_sums":
         return prepare_prefix_loader(train_batch_size=args.train_batch_size,
-                                                                      test_batch_size=args.test_batch_size,
-                                                                      train_data=args.train_data,
-                                                                      test_data=args.test_data)
-    elif args.problem == 'mazes':
+                                     test_batch_size=args.test_batch_size,
+                                     train_data=args.train_data,
+                                     test_data=args.test_data)
+    elif args.problem == "mazes":
         return prepare_maze_loader(train_batch_size=args.train_batch_size,
-                                                                      test_batch_size=args.test_batch_size,
-                                                                      train_data=args.train_data,
-                                                                      test_data=args.test_data)
-    elif args.problem == 'chess':
+                                   test_batch_size=args.test_batch_size,
+                                   train_data=args.train_data,
+                                   test_data=args.test_data)
+    elif args.problem == "chess":
         return prepare_chess_loader(train_batch_size=args.train_batch_size,
-                                                                      test_batch_size=args.test_batch_size,
-                                                                      train_data=args.train_data,
-                                                                      test_data=args.test_data)
+                                    test_batch_size=args.test_batch_size,
+                                    train_data=args.train_data,
+                                    test_data=args.test_data)
     else:
-        raise ValueError(f'Invalid problem spec. {args.problem}')
+        raise ValueError(f"Invalid problem spec. {args.problem}")
 
 def get_model(model, width, max_iters, in_channels=3):
     model = model.lower()
@@ -73,15 +72,14 @@ def get_optimizer(optimizer_name, net, max_iters, epochs, lr, lr_decay, lr_sched
         iters = 1
         all_params = [{"params": base_params}]
 
-    # all_params = [{'params': base_params}, {'params': recur_params, 'lr': lr / iters}]
+    # all_params = [{"params": base_params}, {"params": recur_params, "lr": lr / iters}]
 
     if optimizer_name == "sgd":
         optimizer = SGD(all_params, lr=lr, weight_decay=2e-4, momentum=0.9)
     elif optimizer_name == "adam":
         optimizer = Adam(all_params, lr=lr, weight_decay=2e-4)
     else:
-        print(f"{ic.format()}: Optimizer choise of {optimizer_name} not yet implmented. Exiting.")
-        sys.exit()
+        raise ValueError(f"{ic.format()}: Optimizer choise of {optimizer_name} not yet implmented.")
 
     if state_dict is not None:
         optimizer.load_state_dict(state_dict)
@@ -97,10 +95,7 @@ def get_optimizer(optimizer_name, net, max_iters, epochs, lr, lr_decay, lr_sched
     elif lr_decay.lower() == "cosine":
         lr_scheduler = CosineAnnealingLR(optimizer, epochs, eta_min=0, last_epoch=-1, verbose=False)
     else:
-        print(
-            f"{ic.format()}: Learning rate decay style {lr_decay} not yet implemented." f"Exiting."
-        )
-        sys.exit()
+        raise ValueError(f"{ic.format()}: Learning rate decay style {lr_decay} not yet implemented.")
 
     return optimizer, warmup_scheduler, lr_scheduler
 
