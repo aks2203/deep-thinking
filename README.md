@@ -75,7 +75,7 @@ Similarly, a new testing mode with name `new_mode` can be added as a function na
 
 ### Adding New Datasets
 
-The only datasets available in the easy_to_hard_data package are prefix sums, mazes, and chess. To make use of a different dataset called `new_dataset`, create a file named `new_dataset_data.py` in the [utils](utils) directory containing a `prepare_dataloaders` function. The file `new_dataset_data.py` should be correctly imported and added to the `get_dataloaders` function in [common.py](utils/common.py).
+The only datasets available in the easy_to_hard_data package are prefix sums, mazes, and chess. To make use of a different dataset called `new_dataset`, create a file named `new_dataset_data.py` in the [utils](utils) directory containing a `prepare_dataloaders_new_dataset` function (see other data files as an example). The file `new_dataset_data.py` should be correctly imported and the corresponding `prepare_dataloaders_new_dataset` function should be added to the `get_dataloaders` function in [common.py](utils/common.py).
 
 To then train or test models using the new dataset, you can use the `--problem <new_dataset>` flag for the respective command line argument.
 
