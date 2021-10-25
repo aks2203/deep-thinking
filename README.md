@@ -32,13 +32,13 @@ To point to the command line arguments that were used during training and to the
 
 ## Analysis
 
-To generate a pivot table with average accuracies over several trials, [make_table.py](data_analysis/make_table.py) is helpful. The first command line argument (without a flag) points to an ouput directory. All the json results are then read in and averages over similar runs are nicely tabulated. For example, if you run a few trials of `train_model.py` with the same command line arguments, including `--output my_experiment`, then you can run 
+To generate a pivot table with average accuracies over several trials, [make_table.py](deepthinking/data_analysis/make_table.py) is helpful. The first command line argument (without a flag) points to an ouput directory. All the json results are then read in and averages over similar runs are nicely tabulated. For example, if you run a few trials of `train_model.py` with the same command line arguments, including `--output my_experiment`, then you can run 
 
 ```$ python make_table.py results/my_experiment```
 
 to see the results in an easy-to-read format.
 
-The file called [make_schoop.py](data_analysis/make_schoop.py) will use those pivot tables to make plots of the accuracy at various iterations. Use it the same way as make_table.py to get a visualization of deep thinking behavior. For models that perform better with added iterations, we say that these curves "schoop" upwards, and therefore name these plots "schoopy plots."
+The file called [make_schoop.py](deepthinking/data_analysis/make_schoop.py) will use those pivot tables to make plots of the accuracy at various iterations. Use it the same way as make_table.py to get a visualization of deep thinking behavior. For models that perform better with added iterations, we say that these curves "schoop" upwards, and therefore name these plots "schoopy plots."
 
 ### A Note on Our Metrics
 

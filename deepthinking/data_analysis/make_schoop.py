@@ -39,7 +39,7 @@ def get_schoopy_plot(table, error_bars=True):
                  legend="auto",
                  ax=ax)
 
-    if error_bars:
+    if error_bars and "test_acc_sem" in table.keys():
         for model in models:
             for test_data in test_datas:
                 for alpha in alphas:
