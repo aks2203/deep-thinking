@@ -1,5 +1,5 @@
-""" test_model.py
-    Test models
+""" visualize_model.py
+    Visualize the problem soving process
 
     Collaboratively developed
     by Avi Schwarzschild, Eitan Borgnia,
@@ -10,14 +10,18 @@
 """
 
 import argparse
+import os
 import uuid
-from collections import OrderedDict
+from glob import glob
 
+import imageio
 import json
 import torch
+import torchvision
 
 import deepthinking as dt
 import deepthinking.utils.logging_utils as lg
+from deepthinking.utils.testing_utils import get_predicted
 
 
 # Ignore statements for pylint:
@@ -27,23 +31,45 @@ import deepthinking.utils.logging_utils as lg
 # pylint: disable=R0912, R0915, E1101, E1102, C0103, W0702, R0914, C0116, C0115
 
 
+def save_frames_of_output(net, inputs, targets, iters, problem, save_path, device):
+    net.train()
+    with torch.no_grad():
+        inputs, targets = inputs.to(device), targets.to(device)
+        interim_thought = None
+        for ite in range(iters):
+            outputs, interim_thought = net(inputs, iters_to_do=1, interim_thought=interim_thought)
+            predicted = get_predicted(inputs, outputs, problem)
+
+            predicted = predicted.reshape(1, inputs.size(2), inputs.size(3))
+            predicted = torch.stack([predicted] * 3, dim=1).float()
+            torchvision.utils.save_image(torchvision.utils.make_grid(predicted),
+                                         os.path.join(save_path, f"outputs_{ite}.png"))
+    return
+
+
+def make_gif(output_path):
+    images = []
+    filenames = glob(os.path.join(output_path, f"outputs_*.png"))
+    for filename in filenames:
+        images.append(imageio.imread(filename))
+    imageio.mimsave(os.path.join(output_path, "outputs.gif"), images)
+
+
 def main():
 
     print("\n_________________________________________________\n")
-    print(dt.utils.now(), "train_model.py main() running.")
+    print(dt.utils.now(), "visualize_outputs.py main() running.")
 
-    parser = argparse.ArgumentParser(description="Deep Thinking - testing")
+    parser = argparse.ArgumentParser(description="Deep Thinking - visualize")
 
     parser.add_argument("--args_path", default=None, type=str, help="where are the args saved?")
     parser.add_argument("--model_path", default=None, type=str, help="from where to load model")
     parser.add_argument("--output", default="output_default", type=str, help="output subdirectory")
-    parser.add_argument("--quick_test", action="store_true", help="test with test data only")
-    parser.add_argument("--test_batch_size", default=500, type=int, help="batch size for testing")
     parser.add_argument("--test_data", default=48, type=int, help="which data to test on")
     parser.add_argument("--test_iterations", nargs="+", default=[30, 40], type=int,
                         help="how many iterations for testing")
+    parser.add_argument("--test_input_index", default=0, type=int, help="which input to visualize")
     parser.add_argument("--test_mode", default="max_conf", type=str, help="testing mode")
-    parser.add_argument("--train_batch_size", default=100, type=int, help="training batch size")
 
     args = parser.parse_args()
     args.run_id = uuid.uuid1().hex
@@ -51,14 +77,18 @@ def main():
         args_dict = json.load(fp)
     training_args = args_dict["0"]
 
-    args.alpha = training_args["alpha"]
+    # args.alpha = training_args["alpha"]
+    args.alpha = training_args["weight_for_loss"]
     args.epochs = training_args["epochs"]
     args.lr = training_args["lr"]
     args.lr_factor = training_args["lr_factor"]
     args.max_iters = training_args["max_iters"]
     args.model = training_args["model"]
+    args.model = "dt_net_recallx_2d"
     args.optimizer = training_args["optimizer"]
     args.problem = training_args["problem"]
+    args.test_batch_size = 1
+    args.train_batch_size = 1
     args.train_data = training_args["train_data"]
     args.train_mode = training_args["train_mode"]
     args.width = training_args["width"]
@@ -78,7 +108,7 @@ def main():
 
     ####################################################
     #               Dataset and Network and Optimizer
-    loaders = dt.utils.get_dataloaders(args)
+    loader = dt.utils.get_dataloaders(args)["test"]
 
     net, start_epoch, optimizer_state_dict = dt.utils.load_model_from_checkpoint(args.model,
                                                                                  args.model_path,
@@ -87,57 +117,21 @@ def main():
                                                                                  args.max_iters,
                                                                                  device)
 
-    args.test_iterations.append(args.max_iters)
-    args.test_iterations = list(set(args.test_iterations))
-    args.test_iterations.sort()
-
     pytorch_total_params = sum(p.numel() for p in net.parameters())
-
     print(f"This {args.model} has {pytorch_total_params/1e6:0.3f} million parameters.")
     ####################################################
 
     ####################################################
-    #        Test
+    #        Get Frames
     print("==> Starting testing...")
 
-    if args.quick_test:
-        test_acc = dt.test(net, [loaders["test"]], args.test_mode, args.test_iterations,
-                           args.problem, device)
-        test_acc = test_acc[0]
-        val_acc, train_acc = None, None
-    else:
-        test_acc, val_acc, train_acc = dt.test(net,
-                                               [loaders["test"], loaders["val"], loaders["train"]],
-                                               args.test_mode,
-                                               args.test_iterations,
-                                               args.problem, device)
+    dataloader_iter = iter(loader)
+    for _ in range(args.test_input_index+1):
+        inputs, targets = next(dataloader_iter)
 
-    print(f"{dt.utils.now()} Training accuracy: {train_acc}")
-    print(f"{dt.utils.now()} Val accuracy: {val_acc}")
-    print(f"{dt.utils.now()} Testing accuracy (hard data): {test_acc}")
-
-    model_name_str = f"{args.model}_width={args.width}"
-    stats = OrderedDict([("epochs", args.epochs),
-                         ("learning rate", args.lr),
-                         ("lr", args.lr),
-                         ("lr_factor", args.lr_factor),
-                         ("max_iters", args.max_iters),
-                         ("model", model_name_str),
-                         ("model_path", args.model_path),
-                         ("num_params", pytorch_total_params),
-                         ("optimizer", args.optimizer),
-                         ("val_acc", val_acc),
-                         ("run_id", args.run_id),
-                         ("test_acc", test_acc),
-                         ("test_data", args.test_data),
-                         ("test_iters", args.test_iterations),
-                         ("test_mode", args.test_mode),
-                         ("train_data", args.train_data),
-                         ("train_acc", train_acc),
-                         ("train_batch_size", args.train_batch_size),
-                         ("train_mode", args.train_mode),
-                         ("alpha", args.alpha)])
-    lg.to_json(stats, args.output, "stats.json")
+    iters = max(args.test_iterations)
+    save_frames_of_output(net, inputs, targets, iters, args.problem, args.output, device)
+    make_gif(args.output)
     ####################################################
 
 

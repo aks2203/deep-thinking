@@ -36,7 +36,7 @@ def main():
     print("\n_________________________________________________\n")
     print(dt.utils.now(), "train_model.py main() running.")
 
-    parser = argparse.ArgumentParser(description="Deep Thinking")
+    parser = argparse.ArgumentParser(description="Deep Thinking - training")
 
     parser.add_argument("--alpha", default=1, type=float,
                         help="weight to be used with progressive loss")
