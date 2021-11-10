@@ -40,9 +40,21 @@ def save_frames_of_output(net, inputs, targets, iters, problem, save_path, devic
             outputs, interim_thought = net(inputs, iters_to_do=1, interim_thought=interim_thought)
             predicted = get_predicted(inputs, outputs, problem)
 
-            predicted = predicted.reshape(1, inputs.size(2), inputs.size(3))
+            if len(inputs.size()) == 3:
+                img_width = int(inputs.size(2)/5)
+                predicted = predicted.reshape(1, inputs.size(2))
+                predicted = torch.stack([predicted] * img_width, dim=2)
+                target_img = torch.stack([targets] * img_width, dim=2)
+            elif len(inputs.size()) == 4:
+                predicted = predicted.reshape(1, inputs.size(2), inputs.size(3))
+                target_img = targets
+
             predicted = torch.stack([predicted] * 3, dim=1).float()
-            torchvision.utils.save_image(torchvision.utils.make_grid(predicted),
+            target_img = torch.stack([target_img] * 3, dim=1).float()
+            spacer = torch.zeros_like(target_img)[:, :, :, :target_img.size(3)//2]
+
+            img_to_save = torch.cat([predicted, spacer, target_img], dim=3)
+            torchvision.utils.save_image(torchvision.utils.make_grid(img_to_save),
                                          os.path.join(save_path, f"outputs_{ite}.png"))
     return
 
@@ -77,14 +89,12 @@ def main():
         args_dict = json.load(fp)
     training_args = args_dict["0"]
 
-    # args.alpha = training_args["alpha"]
-    args.alpha = training_args["weight_for_loss"]
+    args.alpha = training_args["alpha"]
     args.epochs = training_args["epochs"]
     args.lr = training_args["lr"]
     args.lr_factor = training_args["lr_factor"]
     args.max_iters = training_args["max_iters"]
     args.model = training_args["model"]
-    args.model = "dt_net_recallx_2d"
     args.optimizer = training_args["optimizer"]
     args.problem = training_args["problem"]
     args.test_batch_size = 1
@@ -123,7 +133,7 @@ def main():
 
     ####################################################
     #        Get Frames
-    print("==> Starting testing...")
+    print("==> Starting to get images to plot...")
 
     dataloader_iter = iter(loader)
     for _ in range(args.test_input_index+1):
