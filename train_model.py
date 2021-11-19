@@ -150,6 +150,7 @@ def main():
 
         print(f"{dt.utils.now()} Training loss at epoch {epoch}: {loss}")
         print(f"{dt.utils.now()} Training accuracy at epoch {epoch}: {acc}")
+        print(f"{dt.utils.now()} Val accuracy at epoch {epoch}: {val_acc}")
 
         # if the loss is nan, then stop the training
         if np.isnan(float(loss)):

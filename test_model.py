@@ -36,6 +36,7 @@ def main():
 
     parser.add_argument("--args_path", default=None, type=str, help="where are the args saved?")
     parser.add_argument("--model_path", default=None, type=str, help="from where to load model")
+    parser.add_argument("--model", default=None, type=str, help="If None load from args else take this architecture")
     parser.add_argument("--output", default="output_default", type=str, help="output subdirectory")
     parser.add_argument("--problem", default="prefix_sums", type=str,
                         help="one of 'prefix_sums', 'mazes', or 'chess'")
@@ -58,7 +59,8 @@ def main():
     args.lr = training_args["lr"]
     args.lr_factor = training_args["lr_factor"]
     args.max_iters = training_args["max_iters"]
-    args.model = training_args["model"]
+    if args.model == None:
+        args.model = training_args["model"]
     args.optimizer = training_args["optimizer"]
     args.train_data = training_args["train_data"]
     args.train_mode = training_args["train_mode"]
