@@ -20,6 +20,7 @@ import deepthinking.models as models
 from .mazes_data import prepare_maze_loader
 from .prefix_sums_data import prepare_prefix_loader
 from .chess_data import prepare_chess_loader
+from .sudoku import prepare_sudoku_loader
 
 from .warmup import ExponentialWarmup
 # Ignore statements for pylint:
@@ -45,6 +46,12 @@ def get_dataloaders(args):
                                     test_batch_size=args.test_batch_size,
                                     train_data=args.train_data,
                                     test_data=args.test_data)
+    elif args.problem == "sudoku":
+        return prepare_sudoku_loader(train_batch_size=args.train_batch_size,
+                                    test_batch_size=args.test_batch_size,
+                                    train_data=args.train_data,
+                                    test_data=args.test_data)
+
     else:
         raise ValueError(f"Invalid problem spec. {args.problem}")
 
@@ -107,6 +114,8 @@ def load_model_from_checkpoint(model, model_path, width, problem, max_iters, dev
     in_channels = 3
     if problem == "chess":
         in_channels = 12
+    elif problem == "sudoku":
+        in_channels = 10
 
     net = get_model(model, width, in_channels=in_channels, max_iters=max_iters)
     net = net.to(device)

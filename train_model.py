@@ -58,7 +58,7 @@ def main():
     parser.add_argument("--optimizer", default="adam", type=str, help="optimizer")
     parser.add_argument("--output", default="output_default", type=str, help="output subdirectory")
     parser.add_argument("--problem", default="prefix_sums", type=str,
-                        help="one of 'prefix_sums', 'mazes', or 'chess'")
+                        help="one of 'prefix_sums', 'mazes', 'sudoku' or 'chess'")
     parser.add_argument("--save_period", default=None, type=int, help="how often to save")
     parser.add_argument("--test_batch_size", default=500, type=int, help="batch size for testing")
     parser.add_argument("--test_data", default=48, type=int, help="which data to test on")
