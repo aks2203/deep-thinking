@@ -150,6 +150,7 @@ def main():
 
         print(f"{dt.utils.now()} Training loss at epoch {epoch}: {loss}")
         print(f"{dt.utils.now()} Training accuracy at epoch {epoch}: {acc}")
+        print(f"{dt.utils.now()} Val accuracy at epoch {epoch}: {val_acc}")
 
         # if the loss is nan, then stop the training
         if np.isnan(float(loss)):
@@ -158,6 +159,7 @@ def main():
         # TensorBoard loss writing
         writer.add_scalar("Loss/loss", loss, epoch)
         writer.add_scalar("Accuracy/acc", acc, epoch)
+        writer.add_scalar("Accuracy/val_acc", val_acc, epoch)
 
         for i in range(len(optimizer.param_groups)):
             writer.add_scalar(f"Learning_rate/group{i}",

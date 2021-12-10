@@ -23,11 +23,12 @@ from .blocks import BasicBlock1D as BasicBlock
 class DTNet1D(nn.Module):
     """DeepThinking 1D Network model class"""
 
-    def __init__(self, block, num_blocks, width, recall, **kwargs):
+    def __init__(self, block, num_blocks, width, recall, group_norm=False, **kwargs):
         super().__init__()
 
         self.width = int(width)
         self.recall = recall
+        self.group_norm = group_norm
 
         proj_conv = nn.Conv1d(1, width, kernel_size=3,
                               stride=1, padding=1, bias=False)
@@ -60,7 +61,7 @@ class DTNet1D(nn.Module):
         strides = [stride] + [1]*(num_blocks-1)
         layers = []
         for strd in strides:
-            layers.append(block(self.width, planes, strd))
+            layers.append(block(self.width, planes, strd, self.group_norm))
             self.width = planes * block.expansion
         return nn.Sequential(*layers)
 
@@ -92,3 +93,11 @@ def dt_net_1d(width, **kwargs):
 
 def dt_net_recallx_1d(width, **kwargs):
     return DTNet1D(BasicBlock, [2], width, recall=True)
+
+
+def dt_net_gn_1d(width, **kwargs):
+    return DTNet1D(BasicBlock, [2], width, recall=False, group_norm=True)
+
+
+def dt_net_recallx_gn_1d(width, **kwargs):
+    return DTNet1D(BasicBlock, [2], width, recall=True, group_norm=True)

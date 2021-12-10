@@ -13,7 +13,7 @@ from datetime import datetime
 
 import torch
 from icecream import ic
-from torch.optim import SGD, Adam
+from torch.optim import SGD, Adam, AdamW
 from torch.optim.lr_scheduler import MultiStepLR, CosineAnnealingLR
 
 import deepthinking.models as models
@@ -48,6 +48,7 @@ def get_dataloaders(args):
     else:
         raise ValueError(f"Invalid problem spec. {args.problem}")
 
+
 def get_model(model, width, max_iters, in_channels=3):
     model = model.lower()
     net = getattr(models, model)(width=width, in_channels=in_channels, max_iters=max_iters)
@@ -78,6 +79,8 @@ def get_optimizer(optimizer_name, net, max_iters, epochs, lr, lr_decay, lr_sched
         optimizer = SGD(all_params, lr=lr, weight_decay=2e-4, momentum=0.9)
     elif optimizer_name == "adam":
         optimizer = Adam(all_params, lr=lr, weight_decay=2e-4)
+    elif optimizer_name == "adamw":
+        optimizer = AdamW(all_params, lr=lr, weight_decay=2e-4)
     else:
         raise ValueError(f"{ic.format()}: Optimizer choise of {optimizer_name} not yet implmented.")
 
