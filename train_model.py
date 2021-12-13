@@ -114,13 +114,11 @@ def main():
 
     optimizer, warmup_scheduler, lr_scheduler = dt.utils.get_optimizer(args.optimizer,
                                                                        net,
-                                                                       args.max_iters,
                                                                        args.epochs,
                                                                        args.lr,
                                                                        args.lr_decay,
                                                                        args.lr_schedule,
                                                                        args.lr_factor,
-                                                                       args.lr_throttle,
                                                                        args.warmup_period,
                                                                        optimizer_state_dict)
     train_setup = dt.TrainingSetup(optimizer=optimizer,
@@ -129,7 +127,8 @@ def main():
                                    clip=args.clip,
                                    alpha=args.alpha,
                                    max_iters=args.max_iters,
-                                   problem=args.problem)
+                                   problem=args.problem,
+                                   throttle=args.lr_throttle)
     ####################################################
 
     ####################################################

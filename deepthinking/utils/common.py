@@ -21,7 +21,8 @@ from .mazes_data import prepare_maze_loader
 from .prefix_sums_data import prepare_prefix_loader
 from .chess_data import prepare_chess_loader
 
-from .warmup import ExponentialWarmup
+from .warmup import ExponentialWarmup, LinearWarmup
+
 # Ignore statements for pylint:
 #     Too many branches (R0912), Too many statements (R0915), No member (E1101),
 #     Not callable (E1102), Invalid name (C0103), No exception (W0702),
@@ -55,25 +56,10 @@ def get_model(model, width, max_iters, in_channels=3):
     return net
 
 
-def get_optimizer(optimizer_name, net, max_iters, epochs, lr, lr_decay, lr_schedule, lr_factor,
-                  lr_throttle, warmup_period, state_dict):
+def get_optimizer(optimizer_name, net, epochs, lr, lr_decay, lr_schedule, lr_factor, warmup_period, state_dict):
 
     optimizer_name = optimizer_name.lower()
-
-    if lr_throttle:
-        # Reducing the lr here for the recurrent layers helps with stability,
-        # To date (July 21, 2021), we may only need this for maze models.
-        base_params = [p for n, p in net.named_parameters() if "recur" not in n]
-        recur_params = [p for n, p in net.named_parameters() if "recur" in n]
-        iters = max_iters
-        all_params = [{"params": base_params}, {"params": recur_params, "lr": lr / iters}]
-    else:
-        base_params = [p for n, p in net.named_parameters()]
-        recur_params = []
-        iters = 1
-        all_params = [{"params": base_params}]
-
-    # all_params = [{"params": base_params}, {"params": recur_params, "lr": lr / iters}]
+    all_params = [{"params": net.parameters()}]
 
     if optimizer_name == "sgd":
         optimizer = SGD(all_params, lr=lr, weight_decay=2e-4, momentum=0.9)
@@ -87,14 +73,14 @@ def get_optimizer(optimizer_name, net, max_iters, epochs, lr, lr_decay, lr_sched
     if state_dict is not None:
         optimizer.load_state_dict(state_dict)
         warmup_scheduler = ExponentialWarmup(optimizer, warmup_period=0)
+        # warmup_scheduler = LinearWarmup(optimizer, warmup_period=0)
     else:
         warmup_scheduler = ExponentialWarmup(optimizer, warmup_period=warmup_period)
+        # warmup_scheduler = LinearWarmup(optimizer, warmup_period=warmup_period)
 
     if lr_decay.lower() == "step":
-
         lr_scheduler = MultiStepLR(optimizer, milestones=lr_schedule,
                                    gamma=lr_factor, last_epoch=-1)
-
     elif lr_decay.lower() == "cosine":
         lr_scheduler = CosineAnnealingLR(optimizer, epochs, eta_min=0, last_epoch=-1, verbose=False)
     else:

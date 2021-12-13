@@ -25,10 +25,10 @@ class BasicBlock1D(nn.Module):
         super().__init__()
         self.conv1 = nn.Conv1d(in_planes, planes, kernel_size=3,
                                stride=stride, padding=1, bias=False)
-        self.gn1 = nn.GroupNorm(4, planes) if group_norm else nn.Sequential()
+        self.gn1 = nn.GroupNorm(4, planes, affine=False) if group_norm else nn.Sequential()
         self.conv2 = nn.Conv1d(planes, planes, kernel_size=3,
                                stride=1, padding=1, bias=False)
-        self.gn2 = nn.GroupNorm(4, planes) if group_norm else nn.Sequential()
+        self.gn2 = nn.GroupNorm(4, planes, affine=False) if group_norm else nn.Sequential()
 
         self.shortcut = nn.Sequential()
         if stride != 1 or in_planes != self.expansion * planes:
@@ -52,10 +52,10 @@ class BasicBlock2D(nn.Module):
         super().__init__()
         self.conv1 = nn.Conv2d(in_planes, planes, kernel_size=3,
                                stride=stride, padding=1, bias=False)
-        self.gn1 = nn.GroupNorm(4, planes) if group_norm else nn.Sequential()
+        self.gn1 = nn.GroupNorm(4, planes, affine=False) if group_norm else nn.Sequential()
         self.conv2 = nn.Conv2d(planes, planes, kernel_size=3,
                                stride=1, padding=1, bias=False)
-        self.gn2 = nn.GroupNorm(4, planes) if group_norm else nn.Sequential()
+        self.gn2 = nn.GroupNorm(4, planes, affine=False) if group_norm else nn.Sequential()
 
         self.shortcut = nn.Sequential()
         if stride != 1 or in_planes != self.expansion * planes:

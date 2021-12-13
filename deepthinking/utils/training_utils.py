@@ -30,7 +30,6 @@ from deepthinking.utils.testing_utils import get_predicted
 @dataclass
 class TrainingSetup:
     """Attributes to describe the training precedure"""
-
     optimizer: "typing.Any"
     scheduler: "typing.Any"
     warmup: "typing.Any"
@@ -38,6 +37,34 @@ class TrainingSetup:
     alpha: "typing.Any"
     max_iters: "typing.Any"
     problem: "typing.Any"
+    throttle: "typing.Any"
+
+
+def do_unscaled_backward(loss_max_iters, loss_progressive, alpha):
+    total_loss = (1 - alpha) * loss_max_iters + alpha * loss_progressive
+    total_loss.backward()
+    return total_loss
+
+
+def do_scaled_backward(net, loss_max_iters, loss_progressive, alpha, k, max_iters):
+    loss_max_iters = (1 - alpha) * loss_max_iters
+    loss_progressive = alpha * loss_progressive
+    if 1 > alpha > 0:
+        loss_max_iters.backward()
+        for n, p in net.named_parameters():
+            if "recur" in n:
+                p.grad *= (k/max_iters)
+    elif alpha == 0:
+        loss_max_iters.backward()
+        for n, p in net.named_parameters():
+            if "recur" in n:
+                p.grad *= (1/max_iters)
+    if alpha > 0:
+        loss_progressive.backward()
+        for n, p in net.named_parameters():
+            if "recur" in n:
+                p.grad *= (1/k)
+    return loss_max_iters + loss_progressive
 
 
 def get_output_for_prog_loss(inputs, max_iters, net):
@@ -54,7 +81,7 @@ def get_output_for_prog_loss(inputs, max_iters, net):
         interim_thought = None
 
     outputs, _ = net(inputs, iters_elapsed=n, iters_to_do=k, interim_thought=interim_thought)
-    return outputs
+    return outputs, k
 
 
 def train(net, loaders, mode, train_setup, device, disable_tqdm=False):
@@ -66,7 +93,6 @@ def train(net, loaders, mode, train_setup, device, disable_tqdm=False):
 
 
 def train_progressive(net, loaders, train_setup, device, disable_tqdm):
-
     trainloader = loaders["train"]
     net.train()
     optimizer = train_setup.optimizer
@@ -74,8 +100,10 @@ def train_progressive(net, loaders, train_setup, device, disable_tqdm):
     warmup_scheduler = train_setup.warmup
     alpha = train_setup.alpha
     max_iters = train_setup.max_iters
+    k = 0
     problem = train_setup.problem
     clip = train_setup.clip
+    throttle = train_setup.throttle
     criterion = torch.nn.CrossEntropyLoss(reduction="none")
 
     train_loss = 0
@@ -104,7 +132,7 @@ def train_progressive(net, loaders, train_setup, device, disable_tqdm):
         # get progressive loss if alpha is not 0 (if it is 0, this loss term is not used
         # so we save time by setting it equal to 0).
         if alpha != 0:
-            outputs = get_output_for_prog_loss(inputs, max_iters, net)
+            outputs, k = get_output_for_prog_loss(inputs, max_iters, net)
             outputs = outputs.view(outputs.size(0), outputs.size(1), -1)
             loss_progressive = criterion(outputs, targets)
         else:
@@ -119,8 +147,10 @@ def train_progressive(net, loaders, train_setup, device, disable_tqdm):
         loss_max_iters_mean = loss_max_iters.mean()
         loss_progressive_mean = loss_progressive.mean()
 
-        loss = (1 - alpha) * loss_max_iters_mean + alpha * loss_progressive_mean
-        loss.backward()
+        if throttle:
+            loss = do_scaled_backward(net, loss_max_iters_mean, loss_progressive_mean, alpha, k, max_iters)
+        else:
+            loss = do_unscaled_backward(loss_max_iters_mean, loss_progressive_mean, alpha)
 
         if clip is not None:
             torch.nn.utils.clip_grad_norm_(net.parameters(), clip)
