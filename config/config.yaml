@@ -1,0 +1,14 @@
+defaults:
+  - hyp: _default_hyperparameters
+  - model: dt_net_recallx_1d
+  - override hydra/job_logging: custom
+  - _self_
+
+problem: prefix_sums
+
+hydra:
+  run:
+    dir: ./outputs/${now:%Y%m%d}-${now:%H:%M}-${run_id}
+
+train_log: "train_log"
+hyp.epochs: 1

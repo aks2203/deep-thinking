@@ -42,9 +42,9 @@ class FlippedChessPuzzleDataset(ChessPuzzleDataset):
 
 def prepare_chess_loader(train_batch_size, test_batch_size, train_data, test_data, shuffle=True):
 
-    trainset = FlippedChessPuzzleDataset("./data", idx_start=0, idx_end=train_data, who_moves=False,
+    trainset = FlippedChessPuzzleDataset("../../data", idx_start=0, idx_end=train_data, who_moves=False,
                                          download=True)
-    testset = FlippedChessPuzzleDataset("./data", idx_start=test_data-100000, idx_end=test_data,
+    testset = FlippedChessPuzzleDataset("../../data", idx_start=test_data-100000, idx_end=test_data,
                                         who_moves=False, download=True)
 
     train_split = int(0.8 * len(trainset))

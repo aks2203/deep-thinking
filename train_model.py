@@ -9,17 +9,20 @@
     October 2021
 """
 
-import argparse
+import json
+import logging
 import os
+import sys
 
-import uuid
 from collections import OrderedDict
+import logging
 
-# Comet must be imported before torch
-# import comet_ml
+import hydra
 import numpy as np
 import torch
 from icecream import ic
+from omegaconf import DictConfig, OmegaConf
+from torch.utils.tensorboard import SummaryWriter
 
 import deepthinking as dt
 import deepthinking.utils.logging_utils as lg
@@ -31,125 +34,74 @@ import deepthinking.utils.logging_utils as lg
 # pylint: disable=R0912, R0915, E1101, E1102, C0103, W0702, R0914, C0116, C0115
 
 
-def main():
-
-    print("\n_________________________________________________\n")
-    print(dt.utils.now(), "train_model.py main() running.")
-
-    parser = argparse.ArgumentParser(description="Deep Thinking")
-
-    parser.add_argument("--alpha", default=1, type=float,
-                        help="weight to be used with progressive loss")
-    parser.add_argument("--clip", default=None, type=float,
-                        help="max gradient magnitude for training")
-    parser.add_argument("--epochs", default=150, type=int, help="number of epochs for training")
-    parser.add_argument("--lr", default=0.001, type=float, help="learning rate")
-    parser.add_argument("--lr_decay", default="step", type=str, help="which kind of lr decay")
-    parser.add_argument("--lr_factor", default=0.1, type=float, help="learning rate decay factor")
-    parser.add_argument("--lr_schedule", nargs="+", default=[60, 100], type=int,
-                        help="when to decrease lr")
-    parser.add_argument("--lr_throttle", action="store_true",
-                        help="reduce the lr for recurrent layers, this is needed for mazes.",)
-    parser.add_argument("--max_iters", default=30, type=int, help="maximum number of iterations")
-    parser.add_argument("--model", default="dt_net_recallx_1d", type=str, help="architecture")
-    parser.add_argument("--model_path", default=None, type=str, help="where is the model saved?")
-    parser.add_argument("--no_shuffle", action="store_false", dest="shuffle",
-                        help="shuffle training data?")
-    parser.add_argument("--optimizer", default="adam", type=str, help="optimizer")
-    parser.add_argument("--output", default="output_default", type=str, help="output subdirectory")
-    parser.add_argument("--problem", default="prefix_sums", type=str,
-                        help="one of 'prefix_sums', 'mazes', or 'chess'")
-    parser.add_argument("--save_period", default=None, type=int, help="how often to save")
-    parser.add_argument("--test_batch_size", default=500, type=int, help="batch size for testing")
-    parser.add_argument("--test_data", default=48, type=int, help="which data to test on")
-    parser.add_argument("--test_iterations", nargs="+", default=[30, 40], type=int,
-                        help="how many iterations for testing")
-    parser.add_argument("--test_mode", default="max_conf", type=str, help="testing mode")
-    parser.add_argument("--train_batch_size", default=100, type=int, help="training batch size")
-    parser.add_argument("--train_data", default=32, type=int, help="which data to train on")
-    parser.add_argument("--train_log", default="train_log.txt", type=str, help="log file name")
-    parser.add_argument("--train_mode", default="progressive", type=str, help="training mode")
-    parser.add_argument("--use_comet", action="store_true", help="whether to use comet logging")
-    parser.add_argument("--val_period", default=20, type=int, help="how often to validate")
-    parser.add_argument("--warmup_period", default=5, type=int, help="warmup period")
-    parser.add_argument("--width", default=400, type=int, help="width of the network")
-
-    args = parser.parse_args()
-    args.test_iterations.append(args.max_iters)
-    args.test_iterations = list(set(args.test_iterations))
-    args.test_iterations.sort()
-    args.run_id = uuid.uuid1().hex
-    args.train_mode, args.test_mode = args.train_mode.lower(), args.test_mode.lower()
+@hydra.main(config_path="config", config_name="config")
+def main(cfg: DictConfig):
     device = "cuda" if torch.cuda.is_available() else "cpu"
     torch.backends.cudnn.benchmark = True
+    if cfg.hyp.save_period is None:
+        cfg.hyp.save_period = cfg.hyp.epochs
+    log = logging.getLogger()
+    log.info("\n_________________________________________________\n")
+    log.info("train_model.py main() running.")
+    log.info(OmegaConf.to_yaml(cfg))
 
-    if args.save_period is None:
-        args.save_period = args.epochs
-
-    for arg in vars(args):
-        print(f"{arg}: {getattr(args, arg)}")
-
-    assert 0 <= args.alpha <= 1, "Weighting for loss (alpha) not in [0, 1], exiting."
-
-    args.checkpoint, args.output = lg.get_dirs_for_saving(args)
-    writer = lg.setup_tb(args.train_log, args.output)
-    comet_exp = lg.setup_comet(args)
-    lg.to_json(vars(args), args.checkpoint, f"{args.run_id}_args.json")
+    dt.utils.setup_test_iterations(cfg)
+    assert 0 <= cfg.hyp.alpha <= 1, "Weighting for loss (alpha) not in [0, 1], exiting."
+    writer = SummaryWriter(log_dir=f"tensorboard")
 
     ####################################################
     #               Dataset and Network and Optimizer
-    loaders = dt.utils.get_dataloaders(args)
+    loaders = dt.utils.get_dataloaders(cfg)
 
-    net, start_epoch, optimizer_state_dict = dt.utils.load_model_from_checkpoint(args.model,
-                                                                                 args.model_path,
-                                                                                 args.width,
-                                                                                 args.problem,
-                                                                                 args.max_iters,
+    net, start_epoch, optimizer_state_dict = dt.utils.load_model_from_checkpoint(cfg.model.model,
+                                                                                 cfg.model.model_path,
+                                                                                 cfg.model.width,
+                                                                                 cfg.problem,
+                                                                                 cfg.hyp.max_iters,
                                                                                  device)
 
     pytorch_total_params = sum(p.numel() for p in net.parameters())
-    #print(net)
-    print(f"This {args.model} has {pytorch_total_params/1e6:0.3f} million parameters.")
-    print(f"Training will start at epoch {start_epoch}.")
+    log.info(f"This {cfg.model.model} has {pytorch_total_params/1e6:0.3f} million parameters.")
+    log.info(f"Training will start at epoch {start_epoch}.")
 
-    optimizer, warmup_scheduler, lr_scheduler = dt.utils.get_optimizer(args.optimizer,
+    optimizer, warmup_scheduler, lr_scheduler = dt.utils.get_optimizer(cfg.hyp.optimizer,
                                                                        net,
-                                                                       args.epochs,
-                                                                       args.lr,
-                                                                       args.lr_decay,
-                                                                       args.lr_schedule,
-                                                                       args.lr_factor,
-                                                                       args.warmup_period,
+                                                                       cfg.hyp.epochs,
+                                                                       cfg.hyp.lr,
+                                                                       cfg.hyp.lr_decay,
+                                                                       cfg.hyp.lr_schedule,
+                                                                       cfg.hyp.lr_factor,
+                                                                       cfg.hyp.warmup_period,
                                                                        optimizer_state_dict)
     train_setup = dt.TrainingSetup(optimizer=optimizer,
                                    scheduler=lr_scheduler,
                                    warmup=warmup_scheduler,
-                                   clip=args.clip,
-                                   alpha=args.alpha,
-                                   max_iters=args.max_iters,
-                                   problem=args.problem,
-                                   throttle=args.lr_throttle)
+                                   clip=cfg.hyp.clip,
+                                   alpha=cfg.hyp.alpha,
+                                   max_iters=cfg.hyp.max_iters,
+                                   problem=cfg.problem,
+                                   throttle=cfg.hyp.lr_throttle)
     ####################################################
 
     ####################################################
     #        Train
-    print(f"==> Starting training for {max(args.epochs - start_epoch, 0)} epochs...")
+    log.info(f"==> Starting training for {max(cfg.hyp.epochs - start_epoch, 0)} epochs...")
     highest_val_acc_so_far = -1
     best_so_far = False
 
-    for epoch in range(start_epoch, args.epochs):
+    for epoch in range(start_epoch, cfg.hyp.epochs):
 
-        loss, acc = dt.train(net, loaders, args.train_mode, train_setup, device,
-                             disable_tqdm=args.use_comet)
-        val_acc = dt.test(net, [loaders["val"]], args.test_mode, [args.max_iters],
-                          args.problem, device, disable_tqdm=args.use_comet)[0][args.max_iters]
+        loss, acc = dt.train(net, loaders, cfg.hyp.train_mode, train_setup, device,
+                             disable_tqdm=cfg.hyp.disable_tqdm)
+        val_acc = dt.test(net, [loaders["val"]], cfg.hyp.test_mode, [cfg.hyp.max_iters],
+                          cfg.problem, device, disable_tqdm=cfg.hyp.disable_tqdm)[0][cfg.hyp.max_iters]
         if val_acc > highest_val_acc_so_far:
             best_so_far = True
             highest_val_acc_so_far = val_acc
 
-        print(f"{dt.utils.now()} Training loss at epoch {epoch}: {loss}")
-        print(f"{dt.utils.now()} Training accuracy at epoch {epoch}: {acc}")
-        print(f"{dt.utils.now()} Val accuracy at epoch {epoch}: {val_acc}")
+        log.info(f"Training loss at epoch {epoch}: {loss}")
+        log.info(f"Training accuracy at epoch {epoch}: {acc}")
+        log.info(f"Val accuracy at epoch {epoch}: {val_acc}")
 
         # if the loss is nan, then stop the training
         if np.isnan(float(loss)):
@@ -165,93 +117,86 @@ def main():
                               optimizer.param_groups[i]["lr"],
                               epoch)
 
-        if (epoch + 1) % args.val_period == 0:
+        if (epoch + 1) % cfg.hyp.val_period == 0:
             test_acc, val_acc, train_acc = dt.test(net,
                                                    [loaders["test"],
                                                     loaders["val"],
                                                     loaders["train"]],
-                                                   args.test_mode,
-                                                   args.test_iterations,
-                                                   args.problem,
-                                                   device, disable_tqdm=args.use_comet)
-            print(f"{dt.utils.now()} Training accuracy: {train_acc}")
-            print(f"{dt.utils.now()} Val accuracy: {val_acc}")
-            print(f"{dt.utils.now()} Test accuracy (hard data): {test_acc}")
+                                                   cfg.hyp.test_mode,
+                                                   cfg.hyp.test_iterations,
+                                                   cfg.problem,
+                                                   device, disable_tqdm=cfg.hyp.disable_tqdm)
+            log.info(f"Training accuracy: {train_acc}")
+            log.info(f"Val accuracy: {val_acc}")
+            log.info(f"Test accuracy (hard data): {test_acc}")
 
-            tb_last = args.test_iterations[-1]
+            tb_last = cfg.hyp.test_iterations[-1]
             lg.write_to_tb([train_acc[tb_last], val_acc[tb_last], test_acc[tb_last]],
                            ["train_acc", "val_acc", "test_acc"],
                            epoch,
                            writer)
-            if comet_exp:
-                lg.log_to_comet(comet_exp, train_acc, val_acc, test_acc, epoch)
-
         # check to see if we should save
-        save_now = (epoch + 1) % args.save_period == 0 or \
-                   (epoch + 1) == args.epochs or best_so_far
+        save_now = (epoch + 1) % cfg.hyp.save_period == 0 or \
+                   (epoch + 1) == cfg.hyp.epochs or best_so_far
 
         if save_now:
             state = {"net": net.state_dict(), "epoch": epoch, "optimizer": optimizer.state_dict()}
-
-            out_str = os.path.join(args.checkpoint,
-                                   f"{args.run_id}_{'best' if best_so_far else ''}.pth")
+            out_str = f"model_{'best' if best_so_far else ''}.pth"
             best_so_far = False
-
-            print(f"{dt.utils.now()} Saving model to: {out_str}")
+            log.info(f"Saving model to: {out_str}")
             torch.save(state, out_str)
-            lg.to_json(out_str, args.output, "checkpoint_path.json")
-
     writer.flush()
     writer.close()
     ####################################################
 
     ####################################################
     #        Test
-    print("==> Starting testing...")
-    print("\t\t Testing the best checkpoint from training.")
+    log.info("==> Starting testing...")
+    log.info("Testing the best checkpoint from training.")
 
     # load the best checkpoint
-    model_path = os.path.join(args.checkpoint, f"{args.run_id}_best.pth")
-    net, _, _ = dt.utils.load_model_from_checkpoint(args.model, model_path, args.width, args.problem,
-                                                    args.max_iters, device)
+    model_path = os.path.join("model_best.pth")
+    net, _, _ = dt.utils.load_model_from_checkpoint(cfg.model.model, model_path, cfg.model.width, cfg.problem,
+                                                    cfg.hyp.max_iters, device)
 
     test_acc, val_acc, train_acc = dt.test(net,
                                            [loaders["test"], loaders["val"], loaders["train"]],
-                                           args.test_mode,
-                                           args.test_iterations,
-                                           args.problem, device, disable_tqdm=args.use_comet)
+                                           cfg.hyp.test_mode,
+                                           cfg.hyp.test_iterations,
+                                           cfg.problem, device, disable_tqdm=cfg.hyp.disable_tqdm)
 
-    print(f"{dt.utils.now()} Training accuracy: {train_acc}")
-    print(f"{dt.utils.now()} Val accuracy: {val_acc}")
-    print(f"{dt.utils.now()} Testing accuracy (hard data): {test_acc}")
+    log.info(f"Training accuracy: {train_acc}")
+    log.info(f"Val accuracy: {val_acc}")
+    log.info(f"Testing accuracy (hard data): {test_acc}")
 
-    if comet_exp:
-        lg.log_to_comet(comet_exp, train_acc, val_acc, test_acc, epoch, out_str)
 
-    model_name_str = f"{args.model}_width={args.width}"
-    stats = OrderedDict([("epochs", args.epochs),
-                         ("learning rate", args.lr),
-                         ("lr", args.lr),
-                         ("lr_factor", args.lr_factor),
-                         ("max_iters", args.max_iters),
+    model_name_str = f"{cfg.model.model}_width={cfg.model.width}"
+    stats = OrderedDict([("epochs", cfg.hyp.epochs),
+                         ("lr", cfg.hyp.lr),
+                         ("lr_factor", cfg.hyp.lr_factor),
+                         ("max_iters", cfg.hyp.max_iters),
                          ("model", model_name_str),
                          ("model_path", model_path),
                          ("num_params", pytorch_total_params),
-                         ("optimizer", args.optimizer),
+                         ("optimizer", cfg.hyp.optimizer),
                          ("val_acc", val_acc),
-                         ("run_id", args.run_id),
+                         ("run_id", cfg.run_id),
                          ("test_acc", test_acc),
-                         ("test_data", args.test_data),
-                         ("test_iters", args.test_iterations),
-                         ("test_mode", args.test_mode),
-                         ("train_data", args.train_data),
+                         ("test_data", cfg.hyp.test_data),
+                         ("test_iters", list(cfg.hyp.test_iterations)),
+                         ("test_mode", cfg.hyp.test_mode),
+                         ("train_data", cfg.hyp.train_data),
                          ("train_acc", train_acc),
-                         ("train_batch_size", args.train_batch_size),
-                         ("train_mode", args.train_mode),
-                         ("alpha", args.alpha)])
-    lg.to_json(stats, args.output, "stats.json")
+                         ("train_batch_size", cfg.hyp.train_batch_size),
+                         ("train_mode", cfg.hyp.train_mode),
+                         ("alpha", cfg.hyp.alpha)])
+    with open(os.path.join("stats.json"), "w") as fp:
+        json.dump(stats, fp)
+    log.info(stats)
     ####################################################
 
 
 if __name__ == "__main__":
+    run_id = dt.utils.generate_run_id()
+    sys.argv.append(f"+run_id={run_id}")
     main()

@@ -1,0 +1,28 @@
+
+alpha: 1
+clip:
+epochs: 150
+lr: 0.001
+lr_decay: step
+lr_factor: 0.1
+lr_schedule:
+  - 60
+  - 100
+lr_throttle: False
+max_iters: 30
+optimizer: adam
+output: output_default
+save_period:
+test_batch_size: 500
+test_data: 48
+test_iterations:
+  - 30
+  - 40
+test_mode: max_conf
+train_batch_size: 100
+train_data: 32
+train_log: train_log.txt
+train_mode: progressive
+disable_tqdm: True
+val_period: 20
+warmup_period: 5

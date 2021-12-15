@@ -1,4 +1,4 @@
-""" common.py
+""" tools.py
     Utility functions that are common to all tasks
 
     Collaboratively developed
@@ -8,7 +8,8 @@
     Developed for DeepThinking project
     October 2021
 """
-
+import logging
+import random
 from datetime import datetime
 
 import torch
@@ -20,6 +21,7 @@ import deepthinking.models as models
 from .mazes_data import prepare_maze_loader
 from .prefix_sums_data import prepare_prefix_loader
 from .chess_data import prepare_chess_loader
+from .. import adjectives, names
 
 from .warmup import ExponentialWarmup, LinearWarmup
 
@@ -30,24 +32,35 @@ from .warmup import ExponentialWarmup, LinearWarmup
 # pylint: disable=R0912, R0915, E1101, E1102, C0103, W0702, R0914, C0116, C0115
 
 
-def get_dataloaders(args):
-    if args.problem == "prefix_sums":
-        return prepare_prefix_loader(train_batch_size=args.train_batch_size,
-                                     test_batch_size=args.test_batch_size,
-                                     train_data=args.train_data,
-                                     test_data=args.test_data)
-    elif args.problem == "mazes":
-        return prepare_maze_loader(train_batch_size=args.train_batch_size,
-                                   test_batch_size=args.test_batch_size,
-                                   train_data=args.train_data,
-                                   test_data=args.test_data)
-    elif args.problem == "chess":
-        return prepare_chess_loader(train_batch_size=args.train_batch_size,
-                                    test_batch_size=args.test_batch_size,
-                                    train_data=args.train_data,
-                                    test_data=args.test_data)
+def setup_test_iterations(cfg):
+    cfg.hyp.test_iterations.append(cfg.hyp.max_iters)
+    cfg.hyp.test_iterations = list(set(cfg.hyp.test_iterations))
+    cfg.hyp.test_iterations.sort()
+
+
+def generate_run_id():
+    hashstr = f"{adjectives[random.randint(0, len(adjectives))]}-{names[random.randint(0, len(names))]}"
+    return hashstr
+
+
+def get_dataloaders(cfg):
+    if cfg.problem == "prefix_sums":
+        return prepare_prefix_loader(train_batch_size=cfg.hyp.train_batch_size,
+                                     test_batch_size=cfg.hyp.test_batch_size,
+                                     train_data=cfg.hyp.train_data,
+                                     test_data=cfg.hyp.test_data)
+    elif cfg.problem == "mazes":
+        return prepare_maze_loader(train_batch_size=cfg.hyp.train_batch_size,
+                                   test_batch_size=cfg.hyp.test_batch_size,
+                                   train_data=cfg.hyp.train_data,
+                                   test_data=cfg.hyp.test_data)
+    elif cfg.problem == "chess":
+        return prepare_chess_loader(train_batch_size=cfg.hyp.train_batch_size,
+                                    test_batch_size=cfg.hyp.test_batch_size,
+                                    train_data=cfg.hyp.train_data,
+                                    test_data=cfg.hyp.test_data)
     else:
-        raise ValueError(f"Invalid problem spec. {args.problem}")
+        raise ValueError(f"Invalid problem spec. {cfg.problem}")
 
 
 def get_model(model, width, max_iters, in_channels=3):
@@ -102,7 +115,7 @@ def load_model_from_checkpoint(model, model_path, width, problem, max_iters, dev
     if device == "cuda":
         net = torch.nn.DataParallel(net)
     if model_path is not None:
-        print(f"Loading model from checkpoint {model_path}...")
+        logging.info(f"Loading model from checkpoint {model_path}...")
         state_dict = torch.load(model_path, map_location=device)
         net.load_state_dict(state_dict["net"])
         epoch = state_dict["epoch"] + 1

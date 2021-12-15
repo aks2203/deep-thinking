@@ -1,4 +1,4 @@
-""" training_utils.py
+""" training.py
     Utilities for training models
 
     Collaboratively developed
@@ -16,7 +16,7 @@ import torch
 from icecream import ic
 from tqdm import tqdm
 
-from deepthinking.utils.testing_utils import get_predicted
+from deepthinking.utils.testing import get_predicted
 
 
 # Ignore statemenst for pylint:

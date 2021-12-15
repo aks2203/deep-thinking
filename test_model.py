@@ -10,11 +10,15 @@
 """
 
 import argparse
+import logging
 import uuid
 from collections import OrderedDict
 
 import json
+
+import hydra
 import torch
+from omegaconf import DictConfig, OmegaConf
 
 import deepthinking as dt
 import deepthinking.utils.logging_utils as lg
@@ -27,32 +31,18 @@ import deepthinking.utils.logging_utils as lg
 # pylint: disable=R0912, R0915, E1101, E1102, C0103, W0702, R0914, C0116, C0115
 
 
-def main():
+@hydra.main(config_path="config", config_name="test_model_cfg")
+def main(cfg: DictConfig):
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    torch.backends.cudnn.benchmark = True
+    if cfg.hyp.save_period is None:
+        cfg.hyp.save_period = cfg.hyp.epochs
+    log = logging.getLogger()
+    log.info("\n_________________________________________________\n")
+    log.info("test_model.py main() running.")
+    log.info(OmegaConf.to_yaml(cfg))
 
-    print("\n_________________________________________________\n")
-    print(dt.utils.now(), "train_model.py main() running.")
-
-    parser = argparse.ArgumentParser(description="Deep Thinking")
-
-    parser.add_argument("--args_path", default=None, type=str, help="where are the args saved?")
-    parser.add_argument("--model_path", default=None, type=str, help="from where to load model")
-    parser.add_argument("--output", default="output_default", type=str, help="output subdirectory")
-    parser.add_argument("--problem", default="prefix_sums", type=str,
-                        help="one of 'prefix_sums', 'mazes', or 'chess'")
-    parser.add_argument("--quick_test", action="store_true", help="test with test data only")
-    parser.add_argument("--test_batch_size", default=500, type=int, help="batch size for testing")
-    parser.add_argument("--test_data", default=48, type=int, help="which data to test on")
-    parser.add_argument("--test_iterations", nargs="+", default=[30, 40], type=int,
-                        help="how many iterations for testing")
-    parser.add_argument("--test_mode", default="max_conf", type=str, help="testing mode")
-    parser.add_argument("--train_batch_size", default=100, type=int, help="training batch size")
-
-    args = parser.parse_args()
-    args.run_id = uuid.uuid1().hex
-    with open(args.args_path, "r") as fp:
-        args_dict = json.load(fp)
-    training_args = args_dict["0"]
-
+    training_args = OmegaConf.load(cfg.args_path)
     args.alpha = training_args["alpha"]
     args.epochs = training_args["epochs"]
     args.lr = training_args["lr"]
@@ -70,7 +60,7 @@ def main():
     torch.backends.cudnn.benchmark = True
 
     for arg in vars(args):
-        print(f"{arg}: {getattr(args, arg)}")
+        log.info(f"{arg}: {getattr(args, arg)}")
 
     assert 0 <= args.alpha <= 1, "Weighting for loss (alpha) not in [0, 1], exiting."
 
@@ -94,12 +84,12 @@ def main():
 
     pytorch_total_params = sum(p.numel() for p in net.parameters())
 
-    print(f"This {args.model} has {pytorch_total_params/1e6:0.3f} million parameters.")
+    log.info(f"This {args.model} has {pytorch_total_params/1e6:0.3f} million parameters.")
     ####################################################
 
     ####################################################
     #        Test
-    print("==> Starting testing...")
+    log.info("==> Starting testing...")
 
     if args.quick_test:
         test_acc = dt.test(net, [loaders["test"]], args.test_mode, args.test_iterations,
@@ -113,9 +103,9 @@ def main():
                                                args.test_iterations,
                                                args.problem, device)
 
-    print(f"{dt.utils.now()} Training accuracy: {train_acc}")
-    print(f"{dt.utils.now()} Val accuracy: {val_acc}")
-    print(f"{dt.utils.now()} Testing accuracy (hard data): {test_acc}")
+    log.info(f"{dt.utils.now()} Training accuracy: {train_acc}")
+    log.info(f"{dt.utils.now()} Val accuracy: {val_acc}")
+    log.info(f"{dt.utils.now()} Testing accuracy (hard data): {test_acc}")
 
     model_name_str = f"{args.model}_width={args.width}"
     stats = OrderedDict([("epochs", args.epochs),
