@@ -8,7 +8,7 @@ problem: prefix_sums
 
 hydra:
   run:
-    dir: ./outputs/${now:%Y%m%d}-${now:%H:%M}-${run_id}
+    dir: ./outputs/${now:%Y%m%d}-${now:%H:%M}-training-${run_id}
 
 train_log: "train_log"
 hyp.epochs: 1

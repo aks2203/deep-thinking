@@ -11,9 +11,9 @@ def get_trained_checkpoints(filepath, acc_filter):
         with open(f_name, "r") as fp:
             data = json.load(fp)
 
-        m = data["0"]["max_iters"]
-        if data["0"]["train_acc"][str(m)] > acc_filter:
-            checkpoints.append((data["0"]["model_path"], data["0"]["train_acc"]))
+        m = data["max_iters"]
+        if data["train_acc"][str(m)] > acc_filter:
+            checkpoints.append((data["run_id"], data["train_acc"]))
             num_trained += 1
         num_checkpoints += 1
     return checkpoints, num_trained, num_checkpoints

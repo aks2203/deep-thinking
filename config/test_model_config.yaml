@@ -1,0 +1,24 @@
+defaults:
+  - hyp: _default_hyperparameters
+  - model: dt_net_recallx_1d
+  - override hydra/job_logging: custom
+  - _self_
+
+problem: prefix_sums
+
+hydra:
+  run:
+    dir: ./outputs/${now:%Y%m%d}-${now:%H:%M}-evaluation-${run_id}
+
+hyp:
+  epochs: 1
+  test_data: 64
+  test_iterations:
+    - 30
+    - 40
+    - 50
+  test_mode: max_conf
+model:
+  model_path: ../20211220-11:43-stolen-Waverly/
+quick_test: False
+

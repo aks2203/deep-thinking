@@ -34,7 +34,7 @@ import deepthinking.utils.logging_utils as lg
 # pylint: disable=R0912, R0915, E1101, E1102, C0103, W0702, R0914, C0116, C0115
 
 
-@hydra.main(config_path="config", config_name="config")
+@hydra.main(config_path="config", config_name="train_model_config")
 def main(cfg: DictConfig):
     device = "cuda" if torch.cuda.is_available() else "cpu"
     torch.backends.cudnn.benchmark = True
