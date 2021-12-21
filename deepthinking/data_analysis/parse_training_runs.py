@@ -14,7 +14,7 @@ def get_trained_checkpoints(filepath, acc_filter):
             data = json.load(fp)
 
         m = data["max_iters"]
-        model_path = "".join(f_name.split("/")[1:-1])
+        model_path = "/".join(f_name.split("/")[1:-1])
         if data["train_acc"][str(m)] > acc_filter:
             checkpoints.append((model_path, m, data["train_acc"][str(m)]))
             num_trained += 1

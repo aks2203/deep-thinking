@@ -54,8 +54,8 @@ def main(cfg: DictConfig):
     net, start_epoch, optimizer_state_dict = dt.utils.load_model_from_checkpoint(cfg.model.model,
                                                                                  cfg.model.model_path,
                                                                                  cfg.model.width,
-                                                                                 cfg.problem,
-                                                                                 cfg.hyp.max_iters,
+                                                                                 cfg.problem.name,
+                                                                                 cfg.model.max_iters,
                                                                                  device)
     pytorch_total_params = sum(p.numel() for p in net.parameters())
     log.info(f"This {cfg.model.model} has {pytorch_total_params/1e6:0.3f} million parameters.")
@@ -74,8 +74,8 @@ def main(cfg: DictConfig):
                                    warmup=warmup_scheduler,
                                    clip=cfg.hyp.clip,
                                    alpha=cfg.hyp.alpha,
-                                   max_iters=cfg.hyp.max_iters,
-                                   problem=cfg.problem,
+                                   max_iters=cfg.model.max_iters,
+                                   problem=cfg.problem.name,
                                    throttle=cfg.hyp.lr_throttle)
     ####################################################
 
@@ -87,8 +87,8 @@ def main(cfg: DictConfig):
 
     for epoch in range(start_epoch, cfg.hyp.epochs):
         loss, acc = dt.train(net, loaders, cfg.hyp.train_mode, train_setup, device)
-        val_acc = dt.test(net, [loaders["val"]], cfg.hyp.test_mode, [cfg.hyp.max_iters],
-                          cfg.problem, device)[0][cfg.hyp.max_iters]
+        val_acc = dt.test(net, [loaders["val"]], cfg.hyp.test_mode, [cfg.model.max_iters],
+                          cfg.problem.name, device)[0][cfg.model.max_iters]
         if val_acc > highest_val_acc_so_far:
             best_so_far = True
             highest_val_acc_so_far = val_acc
@@ -118,14 +118,14 @@ def main(cfg: DictConfig):
                                                     loaders["val"],
                                                     loaders["train"]],
                                                    cfg.hyp.test_mode,
-                                                   cfg.hyp.test_iterations,
-                                                   cfg.problem,
+                                                   cfg.model.test_iterations,
+                                                   cfg.problem.name,
                                                    device)
             log.info(f"Training accuracy: {train_acc}")
             log.info(f"Val accuracy: {val_acc}")
             log.info(f"Test accuracy (hard data): {test_acc}")
 
-            tb_last = cfg.hyp.test_iterations[-1]
+            tb_last = cfg.model.test_iterations[-1]
             lg.write_to_tb([train_acc[tb_last], val_acc[tb_last], test_acc[tb_last]],
                            ["train_acc", "val_acc", "test_acc"],
                            epoch,
@@ -143,13 +143,13 @@ def main(cfg: DictConfig):
     writer.close()
 
     # save some accuracy stats (can be used without testing to discern which models trained)
-    stats = OrderedDict([("max_iters", cfg.hyp.max_iters),
+    stats = OrderedDict([("max_iters", cfg.model.max_iters),
                          ("run_id", cfg.run_id),
                          ("test_acc", test_acc),
-                         ("test_data", cfg.hyp.test_data),
-                         ("test_iters", list(cfg.hyp.test_iterations)),
+                         ("test_data", cfg.problem.test_data),
+                         ("test_iters", list(cfg.model.test_iterations)),
                          ("test_mode", cfg.hyp.test_mode),
-                         ("train_data", cfg.hyp.train_data),
+                         ("train_data", cfg.problem.train_data),
                          ("train_acc", train_acc),
                          ("val_acc", val_acc)])
     with open(os.path.join("stats.json"), "w") as fp:

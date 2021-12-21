@@ -1,28 +1,25 @@
 defaults:
   - hyp: _default_hyperparameters
-  - model: dt_net_recallx_1d
+  - problem: prefix_sums
+  - model: dt_net_recall_1d
   - override hydra/job_logging: custom
   - _self_
 
-problem: prefix_sums
-
 hydra:
   run:
-    dir: ./outputs/${now:%Y%m%d}-${now:%H:%M}-testing-${run_id}
+    dir: ./outputs/${name}/${now:%Y%m%d}-${now:%H:%M}-testing-${run_id}
   job_logging:
     handlers:
       file:
         filename: testing.log
 
-hyp:
-  epochs: 1
-  test_data: 64
-  test_iterations:
-    - 30
-    - 40
-    - 50
-  test_mode: max_conf
+name: testing_default
+
 model:
+  test_iterations:
+    low: 30
+    high: 50
   model_path: ../20211220-14:39-training-yogic-Tamora
+
 quick_test: False
 

@@ -88,7 +88,7 @@ def dt_net_2d(width, **kwargs):
     return DTNet(BasicBlock, [2], width=width, in_channels=kwargs["in_channels"], recall=False)
 
 
-def dt_net_recallx_2d(width, **kwargs):
+def dt_net_recall_2d(width, **kwargs):
     return DTNet(BasicBlock, [2], width=width, in_channels=kwargs["in_channels"], recall=True)
 
 
@@ -96,5 +96,5 @@ def dt_net_gn_2d(width, **kwargs):
     return DTNet(BasicBlock, [2], width=width, in_channels=kwargs["in_channels"], recall=False, group_norm=True)
 
 
-def dt_net_recallx_gn_2d(width, **kwargs):
+def dt_net_recall_gn_2d(width, **kwargs):
     return DTNet(BasicBlock, [2], width=width, in_channels=kwargs["in_channels"], recall=True, group_norm=True)

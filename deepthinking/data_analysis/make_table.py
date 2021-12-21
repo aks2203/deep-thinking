@@ -89,10 +89,15 @@ def get_table(filepath, disp_max, disp_min, filter_at=None, max_iters_list=None,
     if disp_min:
         values.append("min")
     df.drop_duplicates(subset=["model_path", "test_iter", "test_data", "test_mode"], inplace=True)
-    table = pd.pivot_table(df, index=index, aggfunc={"train_acc": values,
-                                                     "val_acc": values,
-                                                     "test_acc": values,
-                                                     "count": "count"})
+    try:
+        table = pd.pivot_table(df, index=index, aggfunc={"train_acc": values,
+                                                         "val_acc": values,
+                                                         "test_acc": values,
+                                                         "count": "count"})
+    except:
+        raise KeyError("No data in the table. Check the path to test results. "
+                       "Possibly, there are no results from models that trained "
+                       "with accuracy above the filter value.")
     return table
 
 

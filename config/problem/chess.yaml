@@ -1,0 +1,3 @@
+name: chess
+test_data: 700_000
+train_data: 600_000

@@ -24,8 +24,8 @@ from easy_to_hard_data import PrefixSumDataset
 def prepare_prefix_loader(train_batch_size, test_batch_size, train_data, test_data,
                           train_split=0.8, shuffle=True):
 
-    dataset = PrefixSumDataset("../../data", num_bits=train_data)
-    testset = PrefixSumDataset("../../data", num_bits=test_data)
+    dataset = PrefixSumDataset("../../../data", num_bits=train_data)
+    testset = PrefixSumDataset("../../../data", num_bits=test_data)
 
     train_split = int(train_split * len(dataset))
 

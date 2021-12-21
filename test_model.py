@@ -45,15 +45,15 @@ def main(cfg: DictConfig):
                         ("hyp", "epochs"),
                         ("hyp", "lr"),
                         ("hyp", "lr_factor"),
-                        ("hyp", "max_iters"),
+                        ("model", "max_iters"),
                         ("model", "model"),
                         ("hyp", "optimizer"),
-                        ("hyp", "train_data"),
+                        ("problem", "train_data"),
                         ("hyp", "train_mode"),
                         ("model", "width")]
     for k1, k2 in cfg_keys_to_load:
         cfg[k1][k2] = training_args[k1][k2]
-    dt.utils.setup_test_iterations(cfg)
+    # dt.utils.setup_test_iterations(cfg)
     log.info(OmegaConf.to_yaml(cfg))
 
     ####################################################
@@ -64,8 +64,8 @@ def main(cfg: DictConfig):
     net, start_epoch, optimizer_state_dict = dt.utils.load_model_from_checkpoint(cfg.model.model,
                                                                                  model_path,
                                                                                  cfg.model.width,
-                                                                                 cfg.problem,
-                                                                                 cfg.hyp.max_iters,
+                                                                                 cfg.problem.name,
+                                                                                 cfg.model.max_iters,
                                                                                  device)
     pytorch_total_params = sum(p.numel() for p in net.parameters())
     log.info(f"This {cfg.model.model} has {pytorch_total_params/1e6:0.3f} million parameters.")
@@ -74,17 +74,17 @@ def main(cfg: DictConfig):
     ####################################################
     #        Test
     log.info("==> Starting testing...")
+    test_iterations = list(range(cfg.model.test_iterations["low"], cfg.model.test_iterations["high"] + 1))
     if cfg.quick_test:
-        test_acc = dt.test(net, [loaders["test"]], cfg.hyp.test_mode, cfg.hyp.test_iterations,
-                           cfg.problem, device)
+        test_acc = dt.test(net, [loaders["test"]], cfg.hyp.test_mode, test_iterations, cfg.problem.name, device)
         test_acc = test_acc[0]
         val_acc, train_acc = None, None
     else:
         test_acc, val_acc, train_acc = dt.test(net,
                                                [loaders["test"], loaders["val"], loaders["train"]],
                                                cfg.hyp.test_mode,
-                                               cfg.hyp.test_iterations,
-                                               cfg.problem, device)
+                                               test_iterations,
+                                               cfg.problem.name, device)
 
     log.info(f"{dt.utils.now()} Training accuracy: {train_acc}")
     log.info(f"{dt.utils.now()} Val accuracy: {val_acc}")
@@ -94,7 +94,7 @@ def main(cfg: DictConfig):
     stats = OrderedDict([("epochs", cfg.hyp.epochs),
                          ("lr", cfg.hyp.lr),
                          ("lr_factor", cfg.hyp.lr_factor),
-                         ("max_iters", cfg.hyp.max_iters),
+                         ("max_iters", cfg.model.max_iters),
                          ("model", model_name_str),
                          ("model_path", model_path),
                          ("num_params", pytorch_total_params),
@@ -102,10 +102,10 @@ def main(cfg: DictConfig):
                          ("val_acc", val_acc),
                          ("run_id", cfg.run_id),
                          ("test_acc", test_acc),
-                         ("test_data", cfg.hyp.test_data),
-                         ("test_iters", list(cfg.hyp.test_iterations)),
+                         ("test_data", cfg.problem.test_data),
+                         ("test_iters", test_iterations),
                          ("test_mode", cfg.hyp.test_mode),
-                         ("train_data", cfg.hyp.train_data),
+                         ("train_data", cfg.problem.train_data),
                          ("train_acc", train_acc),
                          ("train_batch_size", cfg.hyp.train_batch_size),
                          ("train_mode", cfg.hyp.train_mode),

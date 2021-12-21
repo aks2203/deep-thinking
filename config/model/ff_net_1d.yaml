@@ -1,0 +1,5 @@
+model: ff_net_1d
+model_path:
+width: 100
+max_iters: 30
+test_iterations:

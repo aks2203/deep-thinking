@@ -1,0 +1,5 @@
+model: dt_net_recall_2d
+model_path:
+width: 100
+max_iters: 30
+test_iterations:

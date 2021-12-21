@@ -33,9 +33,9 @@ from .warmup import ExponentialWarmup, LinearWarmup
 
 
 def setup_test_iterations(cfg):
-    cfg.hyp.test_iterations.append(cfg.hyp.max_iters)
-    cfg.hyp.test_iterations = list(set(cfg.hyp.test_iterations))
-    cfg.hyp.test_iterations.sort()
+    cfg.model.test_iterations.append(cfg.model.max_iters)
+    cfg.model.test_iterations = list(set(cfg.model.test_iterations))
+    cfg.model.test_iterations.sort()
 
 
 def generate_run_id():
@@ -44,23 +44,23 @@ def generate_run_id():
 
 
 def get_dataloaders(cfg):
-    if cfg.problem == "prefix_sums":
+    if cfg.problem.name == "prefix_sums":
         return prepare_prefix_loader(train_batch_size=cfg.hyp.train_batch_size,
                                      test_batch_size=cfg.hyp.test_batch_size,
-                                     train_data=cfg.hyp.train_data,
-                                     test_data=cfg.hyp.test_data)
-    elif cfg.problem == "mazes":
+                                     train_data=cfg.problem.train_data,
+                                     test_data=cfg.problem.test_data)
+    elif cfg.problem.name == "mazes":
         return prepare_maze_loader(train_batch_size=cfg.hyp.train_batch_size,
                                    test_batch_size=cfg.hyp.test_batch_size,
-                                   train_data=cfg.hyp.train_data,
-                                   test_data=cfg.hyp.test_data)
-    elif cfg.problem == "chess":
+                                   train_data=cfg.problem.train_data,
+                                   test_data=cfg.problem.test_data)
+    elif cfg.problem.name == "chess":
         return prepare_chess_loader(train_batch_size=cfg.hyp.train_batch_size,
                                     test_batch_size=cfg.hyp.test_batch_size,
-                                    train_data=cfg.hyp.train_data,
-                                    test_data=cfg.hyp.test_data)
+                                    train_data=cfg.problem.train_data,
+                                    test_data=cfg.problem.test_data)
     else:
-        raise ValueError(f"Invalid problem spec. {cfg.problem}")
+        raise ValueError(f"Invalid problem spec. {cfg.problem.name}")
 
 
 def get_model(model, width, max_iters, in_channels=3):

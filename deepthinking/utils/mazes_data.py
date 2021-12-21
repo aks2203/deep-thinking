@@ -23,8 +23,8 @@ from easy_to_hard_data import MazeDataset
 
 def prepare_maze_loader(train_batch_size, test_batch_size, train_data, test_data, shuffle=True):
 
-    train_data = MazeDataset("../../data", train=True, size=train_data, download=True)
-    testset = MazeDataset("../../data", train=False, size=test_data, download=True)
+    train_data = MazeDataset("../../../data", train=True, size=train_data, download=True)
+    testset = MazeDataset("../../../data", train=False, size=test_data, download=True)
 
     train_split = int(0.8 * len(train_data))
 
