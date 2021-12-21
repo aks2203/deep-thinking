@@ -9,6 +9,9 @@ problem: prefix_sums
 hydra:
   run:
     dir: ./outputs/${now:%Y%m%d}-${now:%H:%M}-training-${run_id}
+  job_logging:
+    handlers:
+      file:
+        filename: train.log
 
 train_log: "train_log"
-hyp.epochs: 1

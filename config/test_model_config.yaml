@@ -8,7 +8,11 @@ problem: prefix_sums
 
 hydra:
   run:
-    dir: ./outputs/${now:%Y%m%d}-${now:%H:%M}-evaluation-${run_id}
+    dir: ./outputs/${now:%Y%m%d}-${now:%H:%M}-testing-${run_id}
+  job_logging:
+    handlers:
+      file:
+        filename: testing.log
 
 hyp:
   epochs: 1
@@ -19,6 +23,6 @@ hyp:
     - 50
   test_mode: max_conf
 model:
-  model_path: ../20211220-11:43-stolen-Waverly/
+  model_path: ../20211220-14:39-training-yogic-Tamora
 quick_test: False
 

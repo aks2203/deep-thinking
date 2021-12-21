@@ -17,44 +17,46 @@ import json
 import pandas as pd
 
 
-def get_df(filepath, filter_at):
+def get_little_df_from_one_run(data_dict):
+    num_new_dicts = len(data_dict["test_iters"])
+    test_iters = data_dict["test_iters"]
+    out_dict = {}
+    for i in range(num_new_dicts):
+        new_dict_i = copy.deepcopy(data_dict)
+        new_dict_i["test_acc"] = data_dict["test_acc"][str(test_iters[i])] \
+            if data_dict["test_acc"] else 0
+        new_dict_i["val_acc"] = data_dict["val_acc"][str(test_iters[i])] \
+            if data_dict["val_acc"] else 0
+        new_dict_i["train_acc"] = data_dict["train_acc"][str(test_iters[i])] \
+            if data_dict["train_acc"] else 0
+        new_dict_i["test_iter"] = test_iters[i]
+        out_dict[i] = new_dict_i
+    little_df = pd.DataFrame.from_dict(out_dict, orient="index")
+    return little_df
+
+
+def get_df(filepath, acc_filter):
     pd.set_option("display.max_rows", None)
-    bad_run_ids = []
     df = pd.DataFrame()
-    for f_name in glob.glob(f"{filepath}/*/*/stats.json"):
+    num_checkpoints = 0
+    for f_name in glob.iglob(f"{filepath}/**/*testing*/stats.json", recursive=True):
+        num_checkpoints += 1
         with open(f_name, "r") as fp:
             data = json.load(fp)
-        data.pop("num entries")
-        for master_dict in data.values():
-            num_new_dicts = len(master_dict["test_iters"])
-            test_iters = master_dict["test_iters"]
-            out_dict = {}
-            for i in range(num_new_dicts):
-                new_dict_i = copy.deepcopy(master_dict)
-                new_dict_i["test_acc"] = master_dict["test_acc"][str(test_iters[i])] \
-                    if master_dict["test_acc"] else 0
-                new_dict_i["val_acc"] = master_dict["val_acc"][str(test_iters[i])] \
-                    if master_dict["val_acc"] else 0
-                new_dict_i["train_acc"] = master_dict["train_acc"][str(test_iters[i])] \
-                    if master_dict["train_acc"] else 0
-                new_dict_i["test_iter"] = test_iters[i]
-                out_dict[i] = new_dict_i
-
-            little_df = pd.DataFrame.from_dict(out_dict, orient="index")
-            if filter_at is not None:
-                train_iter = list(little_df.max_iters)[0]
-                if little_df[little_df.test_iter == train_iter].train_acc.values[0] >= filter_at:
-                    df = df.append(little_df)
-            else:
-                df = df.append(little_df)
-    print(bad_run_ids)
-    return df
+        if acc_filter is not None:
+            m = data["max_iters"]
+            if data["train_acc"][str(m)] > acc_filter:
+                df = df.append(get_little_df_from_one_run(data))
+        else:
+            df = df.append(get_little_df_from_one_run(data))
+    num_trained = len(df)
+    return df, num_checkpoints, num_trained
 
 
 def get_table(filepath, disp_max, disp_min, filter_at=None, max_iters_list=None,
               alpha_list=None, width_list=None, model_list=None):
     pd.set_option("display.max_rows", None)
-    df = get_df(filepath, filter_at)
+    df, num_checkpoints, num_trained = get_df(filepath, filter_at)
     df["count"] = 1
 
     if max_iters_list:
@@ -86,6 +88,7 @@ def get_table(filepath, disp_max, disp_min, filter_at=None, max_iters_list=None,
         values.append("max")
     if disp_min:
         values.append("min")
+    df.drop_duplicates(subset=["model_path", "test_iter", "test_data", "test_mode"], inplace=True)
     table = pd.pivot_table(df, index=index, aggfunc={"train_acc": values,
                                                      "val_acc": values,
                                                      "test_acc": values,

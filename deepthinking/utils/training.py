@@ -84,15 +84,15 @@ def get_output_for_prog_loss(inputs, max_iters, net):
     return outputs, k
 
 
-def train(net, loaders, mode, train_setup, device, disable_tqdm=False):
+def train(net, loaders, mode, train_setup, device):
     if mode == "progressive":
-        train_loss, acc = train_progressive(net, loaders, train_setup, device, disable_tqdm)
+        train_loss, acc = train_progressive(net, loaders, train_setup, device)
     else:
         raise ValueError(f"{ic.format()}: train_{mode}() not implemented.")
     return train_loss, acc
 
 
-def train_progressive(net, loaders, train_setup, device, disable_tqdm):
+def train_progressive(net, loaders, train_setup, device):
     trainloader = loaders["train"]
     net.train()
     optimizer = train_setup.optimizer
@@ -110,8 +110,7 @@ def train_progressive(net, loaders, train_setup, device, disable_tqdm):
     correct = 0
     total = 0
 
-    for batch_idx, (inputs, targets) in enumerate(tqdm(trainloader, leave=False,
-                                                       disable=disable_tqdm)):
+    for batch_idx, (inputs, targets) in enumerate(tqdm(trainloader, leave=False)):
         inputs, targets = inputs.to(device), targets.to(device).long()
         targets = targets.view(targets.size(0), -1)
         if problem == "mazes":

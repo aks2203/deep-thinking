@@ -12,7 +12,7 @@ lr_throttle: False
 max_iters: 30
 optimizer: adam
 output: output_default
-save_period:
+save_period: -1
 test_batch_size: 500
 test_data: 48
 test_iterations:
@@ -23,6 +23,5 @@ train_batch_size: 100
 train_data: 32
 train_log: train_log.txt
 train_mode: progressive
-disable_tqdm: True
 val_period: 20
 warmup_period: 5

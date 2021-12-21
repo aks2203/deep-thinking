@@ -38,8 +38,6 @@ import deepthinking.utils.logging_utils as lg
 def main(cfg: DictConfig):
     device = "cuda" if torch.cuda.is_available() else "cpu"
     torch.backends.cudnn.benchmark = True
-    if cfg.hyp.save_period is None:
-        cfg.hyp.save_period = cfg.hyp.epochs
     log = logging.getLogger()
     log.info("\n_________________________________________________\n")
     log.info("train_model.py main() running.")
@@ -59,11 +57,9 @@ def main(cfg: DictConfig):
                                                                                  cfg.problem,
                                                                                  cfg.hyp.max_iters,
                                                                                  device)
-
     pytorch_total_params = sum(p.numel() for p in net.parameters())
     log.info(f"This {cfg.model.model} has {pytorch_total_params/1e6:0.3f} million parameters.")
     log.info(f"Training will start at epoch {start_epoch}.")
-
     optimizer, warmup_scheduler, lr_scheduler = dt.utils.get_optimizer(cfg.hyp.optimizer,
                                                                        net,
                                                                        cfg.hyp.epochs,
@@ -90,11 +86,9 @@ def main(cfg: DictConfig):
     best_so_far = False
 
     for epoch in range(start_epoch, cfg.hyp.epochs):
-
-        loss, acc = dt.train(net, loaders, cfg.hyp.train_mode, train_setup, device,
-                             disable_tqdm=cfg.hyp.disable_tqdm)
+        loss, acc = dt.train(net, loaders, cfg.hyp.train_mode, train_setup, device)
         val_acc = dt.test(net, [loaders["val"]], cfg.hyp.test_mode, [cfg.hyp.max_iters],
-                          cfg.problem, device, disable_tqdm=cfg.hyp.disable_tqdm)[0][cfg.hyp.max_iters]
+                          cfg.problem, device)[0][cfg.hyp.max_iters]
         if val_acc > highest_val_acc_so_far:
             best_so_far = True
             highest_val_acc_so_far = val_acc
@@ -117,7 +111,8 @@ def main(cfg: DictConfig):
                               optimizer.param_groups[i]["lr"],
                               epoch)
 
-        if (epoch + 1) % cfg.hyp.val_period == 0:
+        # evaluate the model periodically and at the final epoch
+        if (epoch + 1) % cfg.hyp.val_period == 0 or epoch + 1 == cfg.hyp.epochs:
             test_acc, val_acc, train_acc = dt.test(net,
                                                    [loaders["test"],
                                                     loaders["val"],
@@ -125,7 +120,7 @@ def main(cfg: DictConfig):
                                                    cfg.hyp.test_mode,
                                                    cfg.hyp.test_iterations,
                                                    cfg.problem,
-                                                   device, disable_tqdm=cfg.hyp.disable_tqdm)
+                                                   device)
             log.info(f"Training accuracy: {train_acc}")
             log.info(f"Val accuracy: {val_acc}")
             log.info(f"Test accuracy (hard data): {test_acc}")
@@ -138,7 +133,6 @@ def main(cfg: DictConfig):
         # check to see if we should save
         save_now = (epoch + 1) % cfg.hyp.save_period == 0 or \
                    (epoch + 1) == cfg.hyp.epochs or best_so_far
-
         if save_now:
             state = {"net": net.state_dict(), "epoch": epoch, "optimizer": optimizer.state_dict()}
             out_str = f"model_{'best' if best_so_far else ''}.pth"
@@ -147,39 +141,9 @@ def main(cfg: DictConfig):
             torch.save(state, out_str)
     writer.flush()
     writer.close()
-    ####################################################
 
-    ####################################################
-    #        Test
-    log.info("==> Starting testing...")
-    log.info("Testing the best checkpoint from training.")
-
-    # load the best checkpoint
-    model_path = os.path.join("model_best.pth")
-    net, _, _ = dt.utils.load_model_from_checkpoint(cfg.model.model, model_path, cfg.model.width, cfg.problem,
-                                                    cfg.hyp.max_iters, device)
-
-    test_acc, val_acc, train_acc = dt.test(net,
-                                           [loaders["test"], loaders["val"], loaders["train"]],
-                                           cfg.hyp.test_mode,
-                                           cfg.hyp.test_iterations,
-                                           cfg.problem, device, disable_tqdm=cfg.hyp.disable_tqdm)
-
-    log.info(f"Training accuracy: {train_acc}")
-    log.info(f"Val accuracy: {val_acc}")
-    log.info(f"Testing accuracy (hard data): {test_acc}")
-
-
-    model_name_str = f"{cfg.model.model}_width={cfg.model.width}"
-    stats = OrderedDict([("epochs", cfg.hyp.epochs),
-                         ("lr", cfg.hyp.lr),
-                         ("lr_factor", cfg.hyp.lr_factor),
-                         ("max_iters", cfg.hyp.max_iters),
-                         ("model", model_name_str),
-                         ("model_path", model_path),
-                         ("num_params", pytorch_total_params),
-                         ("optimizer", cfg.hyp.optimizer),
-                         ("val_acc", val_acc),
+    # save some accuracy stats (can be used without testing to discern which models trained)
+    stats = OrderedDict([("max_iters", cfg.hyp.max_iters),
                          ("run_id", cfg.run_id),
                          ("test_acc", test_acc),
                          ("test_data", cfg.hyp.test_data),
@@ -187,9 +151,7 @@ def main(cfg: DictConfig):
                          ("test_mode", cfg.hyp.test_mode),
                          ("train_data", cfg.hyp.train_data),
                          ("train_acc", train_acc),
-                         ("train_batch_size", cfg.hyp.train_batch_size),
-                         ("train_mode", cfg.hyp.train_mode),
-                         ("alpha", cfg.hyp.alpha)])
+                         ("val_acc", val_acc)])
     with open(os.path.join("stats.json"), "w") as fp:
         json.dump(stats, fp)
     log.info(stats)
