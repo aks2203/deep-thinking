@@ -1,7 +1,5 @@
 defaults:
-  - hyp: _default_hyperparameters
   - problem: prefix_sums
-  - model: dt_net_recall_1d
   - override hydra/job_logging: custom
   - _self_
 
@@ -16,7 +14,8 @@ hydra:
 train_log: train_log
 name: training_default
 
-model:
-  test_iterations:
-    - 30
-    - 40
+problem:
+  model:
+    test_iterations:
+      - 30
+      - 40

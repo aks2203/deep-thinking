@@ -33,9 +33,9 @@ from .warmup import ExponentialWarmup, LinearWarmup
 
 
 def setup_test_iterations(cfg):
-    cfg.model.test_iterations.append(cfg.model.max_iters)
-    cfg.model.test_iterations = list(set(cfg.model.test_iterations))
-    cfg.model.test_iterations.sort()
+    cfg.problem.model.test_iterations.append(cfg.problem.model.max_iters)
+    cfg.problem.model.test_iterations = list(set(cfg.problem.model.test_iterations))
+    cfg.problem.model.test_iterations.sort()
 
 
 def generate_run_id():
@@ -45,18 +45,18 @@ def generate_run_id():
 
 def get_dataloaders(cfg):
     if cfg.problem.name == "prefix_sums":
-        return prepare_prefix_loader(train_batch_size=cfg.hyp.train_batch_size,
-                                     test_batch_size=cfg.hyp.test_batch_size,
+        return prepare_prefix_loader(train_batch_size=cfg.problem.hyp.train_batch_size,
+                                     test_batch_size=cfg.problem.hyp.test_batch_size,
                                      train_data=cfg.problem.train_data,
                                      test_data=cfg.problem.test_data)
     elif cfg.problem.name == "mazes":
-        return prepare_maze_loader(train_batch_size=cfg.hyp.train_batch_size,
-                                   test_batch_size=cfg.hyp.test_batch_size,
+        return prepare_maze_loader(train_batch_size=cfg.problem.hyp.train_batch_size,
+                                   test_batch_size=cfg.problem.hyp.test_batch_size,
                                    train_data=cfg.problem.train_data,
                                    test_data=cfg.problem.test_data)
     elif cfg.problem.name == "chess":
-        return prepare_chess_loader(train_batch_size=cfg.hyp.train_batch_size,
-                                    test_batch_size=cfg.hyp.test_batch_size,
+        return prepare_chess_loader(train_batch_size=cfg.problem.hyp.train_batch_size,
+                                    test_batch_size=cfg.problem.hyp.test_batch_size,
                                     train_data=cfg.problem.train_data,
                                     test_data=cfg.problem.test_data)
     else:

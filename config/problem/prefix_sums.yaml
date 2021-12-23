@@ -1,3 +1,7 @@
+defaults:
+  - hyp: _default_hyperparameters
+  - model: dt_net_1d
+
 name: prefix_sums
 test_data: 48
 train_data: 32

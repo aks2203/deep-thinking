@@ -44,51 +44,51 @@ def main(cfg: DictConfig):
     log.info(OmegaConf.to_yaml(cfg))
 
     dt.utils.setup_test_iterations(cfg)
-    assert 0 <= cfg.hyp.alpha <= 1, "Weighting for loss (alpha) not in [0, 1], exiting."
+    assert 0 <= cfg.problem.hyp.alpha <= 1, "Weighting for loss (alpha) not in [0, 1], exiting."
     writer = SummaryWriter(log_dir=f"tensorboard")
 
     ####################################################
     #               Dataset and Network and Optimizer
     loaders = dt.utils.get_dataloaders(cfg)
 
-    net, start_epoch, optimizer_state_dict = dt.utils.load_model_from_checkpoint(cfg.model.model,
-                                                                                 cfg.model.model_path,
-                                                                                 cfg.model.width,
+    net, start_epoch, optimizer_state_dict = dt.utils.load_model_from_checkpoint(cfg.problem.model.model,
+                                                                                 cfg.problem.model.model_path,
+                                                                                 cfg.problem.model.width,
                                                                                  cfg.problem.name,
-                                                                                 cfg.model.max_iters,
+                                                                                 cfg.problem.model.max_iters,
                                                                                  device)
     pytorch_total_params = sum(p.numel() for p in net.parameters())
-    log.info(f"This {cfg.model.model} has {pytorch_total_params/1e6:0.3f} million parameters.")
+    log.info(f"This {cfg.problem.model.model} has {pytorch_total_params/1e6:0.3f} million parameters.")
     log.info(f"Training will start at epoch {start_epoch}.")
-    optimizer, warmup_scheduler, lr_scheduler = dt.utils.get_optimizer(cfg.hyp.optimizer,
+    optimizer, warmup_scheduler, lr_scheduler = dt.utils.get_optimizer(cfg.problem.hyp.optimizer,
                                                                        net,
-                                                                       cfg.hyp.epochs,
-                                                                       cfg.hyp.lr,
-                                                                       cfg.hyp.lr_decay,
-                                                                       cfg.hyp.lr_schedule,
-                                                                       cfg.hyp.lr_factor,
-                                                                       cfg.hyp.warmup_period,
+                                                                       cfg.problem.hyp.epochs,
+                                                                       cfg.problem.hyp.lr,
+                                                                       cfg.problem.hyp.lr_decay,
+                                                                       cfg.problem.hyp.lr_schedule,
+                                                                       cfg.problem.hyp.lr_factor,
+                                                                       cfg.problem.hyp.warmup_period,
                                                                        optimizer_state_dict)
     train_setup = dt.TrainingSetup(optimizer=optimizer,
                                    scheduler=lr_scheduler,
                                    warmup=warmup_scheduler,
-                                   clip=cfg.hyp.clip,
-                                   alpha=cfg.hyp.alpha,
-                                   max_iters=cfg.model.max_iters,
+                                   clip=cfg.problem.hyp.clip,
+                                   alpha=cfg.problem.hyp.alpha,
+                                   max_iters=cfg.problem.model.max_iters,
                                    problem=cfg.problem.name,
-                                   throttle=cfg.hyp.lr_throttle)
+                                   throttle=cfg.problem.hyp.lr_throttle)
     ####################################################
 
     ####################################################
     #        Train
-    log.info(f"==> Starting training for {max(cfg.hyp.epochs - start_epoch, 0)} epochs...")
+    log.info(f"==> Starting training for {max(cfg.problem.hyp.epochs - start_epoch, 0)} epochs...")
     highest_val_acc_so_far = -1
     best_so_far = False
 
-    for epoch in range(start_epoch, cfg.hyp.epochs):
-        loss, acc = dt.train(net, loaders, cfg.hyp.train_mode, train_setup, device)
-        val_acc = dt.test(net, [loaders["val"]], cfg.hyp.test_mode, [cfg.model.max_iters],
-                          cfg.problem.name, device)[0][cfg.model.max_iters]
+    for epoch in range(start_epoch, cfg.problem.hyp.epochs):
+        loss, acc = dt.train(net, loaders, cfg.problem.hyp.train_mode, train_setup, device)
+        val_acc = dt.test(net, [loaders["val"]], cfg.problem.hyp.test_mode, [cfg.problem.model.max_iters],
+                          cfg.problem.name, device)[0][cfg.problem.model.max_iters]
         if val_acc > highest_val_acc_so_far:
             best_so_far = True
             highest_val_acc_so_far = val_acc
@@ -112,27 +112,27 @@ def main(cfg: DictConfig):
                               epoch)
 
         # evaluate the model periodically and at the final epoch
-        if (epoch + 1) % cfg.hyp.val_period == 0 or epoch + 1 == cfg.hyp.epochs:
+        if (epoch + 1) % cfg.problem.hyp.val_period == 0 or epoch + 1 == cfg.problem.hyp.epochs:
             test_acc, val_acc, train_acc = dt.test(net,
                                                    [loaders["test"],
                                                     loaders["val"],
                                                     loaders["train"]],
-                                                   cfg.hyp.test_mode,
-                                                   cfg.model.test_iterations,
+                                                   cfg.problem.hyp.test_mode,
+                                                   cfg.problem.model.test_iterations,
                                                    cfg.problem.name,
                                                    device)
             log.info(f"Training accuracy: {train_acc}")
             log.info(f"Val accuracy: {val_acc}")
             log.info(f"Test accuracy (hard data): {test_acc}")
 
-            tb_last = cfg.model.test_iterations[-1]
+            tb_last = cfg.problem.model.test_iterations[-1]
             lg.write_to_tb([train_acc[tb_last], val_acc[tb_last], test_acc[tb_last]],
                            ["train_acc", "val_acc", "test_acc"],
                            epoch,
                            writer)
         # check to see if we should save
-        save_now = (epoch + 1) % cfg.hyp.save_period == 0 or \
-                   (epoch + 1) == cfg.hyp.epochs or best_so_far
+        save_now = (epoch + 1) % cfg.problem.hyp.save_period == 0 or \
+                   (epoch + 1) == cfg.problem.hyp.epochs or best_so_far
         if save_now:
             state = {"net": net.state_dict(), "epoch": epoch, "optimizer": optimizer.state_dict()}
             out_str = f"model_{'best' if best_so_far else ''}.pth"
@@ -143,12 +143,12 @@ def main(cfg: DictConfig):
     writer.close()
 
     # save some accuracy stats (can be used without testing to discern which models trained)
-    stats = OrderedDict([("max_iters", cfg.model.max_iters),
+    stats = OrderedDict([("max_iters", cfg.problem.model.max_iters),
                          ("run_id", cfg.run_id),
                          ("test_acc", test_acc),
                          ("test_data", cfg.problem.test_data),
-                         ("test_iters", list(cfg.model.test_iterations)),
-                         ("test_mode", cfg.hyp.test_mode),
+                         ("test_iters", list(cfg.problem.model.test_iterations)),
+                         ("test_mode", cfg.problem.hyp.test_mode),
                          ("train_data", cfg.problem.train_data),
                          ("train_acc", train_acc),
                          ("val_acc", val_acc)])

@@ -1,7 +1,5 @@
 defaults:
-  - hyp: _default_hyperparameters
   - problem: prefix_sums
-  - model: dt_net_recall_1d
   - override hydra/job_logging: custom
   - _self_
 
@@ -15,11 +13,12 @@ hydra:
 
 name: testing_default
 
-model:
-  test_iterations:
-    low: 30
-    high: 50
-  model_path: ../20211220-14:39-training-yogic-Tamora
+problem:
+  model:
+    test_iterations:
+      low: 30
+      high: 50
+    model_path: ../20211220-14:39-training-yogic-Tamora
 
 quick_test: False
 
