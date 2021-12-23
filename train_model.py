@@ -13,9 +13,7 @@ import json
 import logging
 import os
 import sys
-
 from collections import OrderedDict
-import logging
 
 import hydra
 import numpy as np
@@ -26,6 +24,7 @@ from torch.utils.tensorboard import SummaryWriter
 
 import deepthinking as dt
 import deepthinking.utils.logging_utils as lg
+
 
 # Ignore statements for pylint:
 #     Too many branches (R0912), Too many statements (R0915), No member (E1101),
@@ -49,25 +48,16 @@ def main(cfg: DictConfig):
 
     ####################################################
     #               Dataset and Network and Optimizer
-    loaders = dt.utils.get_dataloaders(cfg)
+    loaders = dt.utils.get_dataloaders(cfg.problem)
 
-    net, start_epoch, optimizer_state_dict = dt.utils.load_model_from_checkpoint(cfg.problem.model.model,
-                                                                                 cfg.problem.model.model_path,
-                                                                                 cfg.problem.model.width,
-                                                                                 cfg.problem.name,
-                                                                                 cfg.problem.model.max_iters,
+    net, start_epoch, optimizer_state_dict = dt.utils.load_model_from_checkpoint(cfg.problem.name,
+                                                                                 cfg.problem.model,
                                                                                  device)
     pytorch_total_params = sum(p.numel() for p in net.parameters())
     log.info(f"This {cfg.problem.model.model} has {pytorch_total_params/1e6:0.3f} million parameters.")
     log.info(f"Training will start at epoch {start_epoch}.")
-    optimizer, warmup_scheduler, lr_scheduler = dt.utils.get_optimizer(cfg.problem.hyp.optimizer,
+    optimizer, warmup_scheduler, lr_scheduler = dt.utils.get_optimizer(cfg.problem.hyp,
                                                                        net,
-                                                                       cfg.problem.hyp.epochs,
-                                                                       cfg.problem.hyp.lr,
-                                                                       cfg.problem.hyp.lr_decay,
-                                                                       cfg.problem.hyp.lr_schedule,
-                                                                       cfg.problem.hyp.lr_factor,
-                                                                       cfg.problem.hyp.warmup_period,
                                                                        optimizer_state_dict)
     train_setup = dt.TrainingSetup(optimizer=optimizer,
                                    scheduler=lr_scheduler,

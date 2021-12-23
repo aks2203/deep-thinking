@@ -43,24 +43,24 @@ def generate_run_id():
     return hashstr
 
 
-def get_dataloaders(cfg):
-    if cfg.problem.name == "prefix_sums":
-        return prepare_prefix_loader(train_batch_size=cfg.problem.hyp.train_batch_size,
-                                     test_batch_size=cfg.problem.hyp.test_batch_size,
-                                     train_data=cfg.problem.train_data,
-                                     test_data=cfg.problem.test_data)
-    elif cfg.problem.name == "mazes":
-        return prepare_maze_loader(train_batch_size=cfg.problem.hyp.train_batch_size,
-                                   test_batch_size=cfg.problem.hyp.test_batch_size,
-                                   train_data=cfg.problem.train_data,
-                                   test_data=cfg.problem.test_data)
-    elif cfg.problem.name == "chess":
-        return prepare_chess_loader(train_batch_size=cfg.problem.hyp.train_batch_size,
-                                    test_batch_size=cfg.problem.hyp.test_batch_size,
-                                    train_data=cfg.problem.train_data,
-                                    test_data=cfg.problem.test_data)
+def get_dataloaders(problem_args):
+    if problem_args.name == "prefix_sums":
+        return prepare_prefix_loader(train_batch_size=problem_args.hyp.train_batch_size,
+                                     test_batch_size=problem_args.hyp.test_batch_size,
+                                     train_data=problem_args.train_data,
+                                     test_data=problem_args.test_data)
+    elif problem_args.name == "mazes":
+        return prepare_maze_loader(train_batch_size=problem_args.hyp.train_batch_size,
+                                   test_batch_size=problem_args.hyp.test_batch_size,
+                                   train_data=problem_args.train_data,
+                                   test_data=problem_args.test_data)
+    elif problem_args.name == "chess":
+        return prepare_chess_loader(train_batch_size=problem_args.hyp.train_batch_size,
+                                    test_batch_size=problem_args.hyp.test_batch_size,
+                                    train_data=problem_args.train_data,
+                                    test_data=problem_args.test_data)
     else:
-        raise ValueError(f"Invalid problem spec. {cfg.problem.name}")
+        raise ValueError(f"Invalid problem spec. {problem_args.name}")
 
 
 def get_model(model, width, max_iters, in_channels=3):
@@ -69,9 +69,15 @@ def get_model(model, width, max_iters, in_channels=3):
     return net
 
 
-def get_optimizer(optimizer_name, net, epochs, lr, lr_decay, lr_schedule, lr_factor, warmup_period, state_dict):
+def get_optimizer(optim_args, net, state_dict):
+    optimizer_name = optim_args.optimizer.lower()
+    epochs = optim_args.epochs
+    lr = optim_args.lr
+    lr_decay = optim_args.lr_decay
+    lr_schedule = optim_args.lr_schedule
+    lr_factor = optim_args.lr_factor
+    warmup_period = optim_args.warmup_period
 
-    optimizer_name = optimizer_name.lower()
     all_params = [{"params": net.parameters()}]
 
     if optimizer_name == "sgd":
@@ -102,7 +108,11 @@ def get_optimizer(optimizer_name, net, epochs, lr, lr_decay, lr_schedule, lr_fac
     return optimizer, warmup_scheduler, lr_scheduler
 
 
-def load_model_from_checkpoint(model, model_path, width, problem, max_iters, device):
+def load_model_from_checkpoint(problem, model_args, device):
+    model = model_args.model
+    model_path = model_args.model_path
+    width = model_args.width
+    max_iters = model_args.max_iters
     epoch = 0
     optimizer = None
 
