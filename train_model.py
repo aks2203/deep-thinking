@@ -42,7 +42,8 @@ def main(cfg: DictConfig):
     log.info("train_model.py main() running.")
     log.info(OmegaConf.to_yaml(cfg))
 
-    dt.utils.setup_test_iterations(cfg)
+    cfg.problem.model.test_iterations = list(range(cfg.problem.model.test_iterations["low"],
+                                                   cfg.problem.model.test_iterations["high"] + 1))
     assert 0 <= cfg.problem.hyp.alpha <= 1, "Weighting for loss (alpha) not in [0, 1], exiting."
     writer = SummaryWriter(log_dir=f"tensorboard")
 

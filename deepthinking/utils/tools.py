@@ -32,12 +32,6 @@ from .warmup import ExponentialWarmup, LinearWarmup
 # pylint: disable=R0912, R0915, E1101, E1102, C0103, W0702, R0914, C0116, C0115
 
 
-def setup_test_iterations(cfg):
-    cfg.problem.model.test_iterations.append(cfg.problem.model.max_iters)
-    cfg.problem.model.test_iterations = list(set(cfg.problem.model.test_iterations))
-    cfg.problem.model.test_iterations.sort()
-
-
 def generate_run_id():
     hashstr = f"{adjectives[random.randint(0, len(adjectives))]}-{names[random.randint(0, len(names))]}"
     return hashstr

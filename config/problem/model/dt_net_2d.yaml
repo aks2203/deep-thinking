@@ -3,3 +3,5 @@ model_path:
 width: 100
 max_iters: 30
 test_iterations:
+  low: 30
+  high: 40

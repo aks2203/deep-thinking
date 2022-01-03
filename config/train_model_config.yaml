@@ -13,9 +13,3 @@ hydra:
 
 train_log: train_log
 name: training_default
-
-problem:
-  model:
-    test_iterations:
-      - 30
-      - 40
