@@ -1,7 +1,7 @@
 defaults:
-  - hyp: _default_hyperparameters
-  - model: dt_net_1d
+  - hyp: prefix_sums_default
+  - model: dt_net_recall_1d
 
 name: prefix_sums
-test_data: 48
+test_data: 512
 train_data: 32

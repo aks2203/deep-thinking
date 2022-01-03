@@ -1,5 +1,5 @@
 alpha: 1
-clip:
+clip: 1
 epochs: 150
 lr: 0.001
 lr_decay: step

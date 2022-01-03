@@ -1,7 +1,10 @@
 defaults:
-  - hyp: _default_hyperparameters
-  - model: dt_net_2d
+  - hyp: mazes_default
+  - model: dt_net_recall_2d
 
 name: mazes
 test_data: 33
 train_data: 9
+
+model:
+  width: 128

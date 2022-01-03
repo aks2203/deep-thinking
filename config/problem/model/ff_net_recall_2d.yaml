@@ -1,4 +1,4 @@
-model: ff_net_recall_2d
+model: feedforward_net_recall_2d
 model_path:
 width: 100
 max_iters: 30

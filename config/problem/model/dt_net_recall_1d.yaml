@@ -1,5 +1,5 @@
 model: dt_net_recall_1d
 model_path:
-width: 100
+width: 400
 max_iters: 30
 test_iterations:

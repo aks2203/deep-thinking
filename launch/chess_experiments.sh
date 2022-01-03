@@ -1,19 +1,8 @@
-python train_model.py --alpha 0 --epochs 120 --lr 0.01 --lr_decay step --lr_factor 0.1 --lr_schedule 100 110 --max_iters 30 --model feedforward_net_2d --optimizer sgd --output chess_experiments --problem chess --test_batch_size 300 --test_data 700000 --test_iterations 30 --test_mode default --train_batch_size 300 --train_data 600000 --train_log chess_train_log_1.txt --train_mode progressive --val_period 50 --warmup_period 3 --width 512
-
-python train_model.py --alpha 0.5 --epochs 120 --lr 0.01 --lr_decay step --lr_factor 0.1 --lr_schedule 100 110 --max_iters 30 --model feedforward_net_recallx_2d --optimizer sgd --output chess_experiments --problem chess --test_batch_size 100 --test_data 700000 --test_iterations 30 --test_mode default --train_batch_size 100 --train_data 600000 --train_log chess_train_log_2.txt --train_mode progressive --val_period 50 --warmup_period 3 --width 512
-
-python train_model.py --alpha 0 --epochs 120 --lr 0.01 --lr_decay step --lr_factor 0.1 --lr_schedule 100 110 --max_iters 30 --model feedforward_net_2d --optimizer sgd --output chess_experiments --problem chess --test_batch_size 300 --test_data 700000 --test_iterations 30 --test_mode default --train_batch_size 300 --train_data 600000 --train_log chess_train_log_11.txt --train_mode progressive --val_period 50 --warmup_period 3 --width 512
-
-python train_model.py --alpha 0.5 --epochs 120 --lr 0.01 --lr_decay step --lr_factor 0.1 --lr_schedule 100 110 --max_iters 30 --model feedforward_net_recallx_2d --optimizer sgd --output chess_experiments --problem chess --test_batch_size 100 --test_data 700000 --test_iterations 30 --test_mode default --train_batch_size 100 --train_data 600000 --train_log chess_train_log_21.txt --train_mode progressive --val_period 50 --warmup_period 3 --width 512
-
-python train_model.py --alpha 0 --epochs 120 --lr 0.01 --lr_decay step --lr_factor 0.1 --lr_schedule 100 110 --max_iters 30 --model dt_net_2d --optimizer sgd --output chess_experiments --problem chess --test_batch_size 300 --test_data 700000 --test_mode max_conf --train_batch_size 300 --train_data 600000 --train_log chess_train_log_3.txt --train_mode progressive --val_period 50 --warmup_period 3 --width 512
-
-python train_model.py --alpha 0 --epochs 120 --lr 0.01 --lr_decay step --lr_factor 0.1 --lr_schedule 100 110 --max_iters 30 --model dt_net_recallx_2d --optimizer sgd --output chess_experiments --problem chess --test_batch_size 300 --test_data 700000 --test_mode max_conf --train_batch_size 300 --train_data 600000 --train_log chess_train_log_4.txt --train_mode progressive --val_period 50 --warmup_period 3 --width 512
-
-python train_model.py --alpha 0.5 --epochs 120 --lr 0.01 --lr_decay step --lr_factor 0.1 --lr_schedule 100 110 --max_iters 30 --model dt_net_2d --optimizer sgd --output chess_experiments --problem chess --test_batch_size 300 --test_data 700000 --test_mode max_conf --train_batch_size 300 --train_data 600000 --train_log chess_train_log_5.txt --train_mode progressive --val_period 50 --warmup_period 3 --width 512
-
-python train_model.py --alpha 0.5 --epochs 120 --lr 0.01 --lr_decay step --lr_factor 0.1 --lr_schedule 100 110 --max_iters 30 --model dt_net_recallx_2d --optimizer sgd --output chess_experiments --problem chess --test_batch_size 300 --test_data 700000 --test_mode max_conf --train_batch_size 300 --train_data 600000 --train_log chess_train_log_6.txt --train_mode progressive --val_period 50 --warmup_period 3 --width 512
-
-python train_model.py --alpha 1 --epochs 120 --lr 0.01 --lr_decay step --lr_factor 0.1 --lr_schedule 100 110 --max_iters 30 --model dt_net_2d --optimizer sgd --output chess_experiments --problem chess --test_batch_size 300 --test_data 700000 --test_mode max_conf --train_batch_size 300 --train_data 600000 --train_log chess_train_log_7.txt --train_mode progressive --val_period 50 --warmup_period 3 --width 512
-
-python train_model.py --alpha 1 --epochs 120 --lr 0.01 --lr_decay step --lr_factor 0.1 --lr_schedule 100 110 --max_iters 30 --model dt_net_recallx_2d --optimizer sgd --output chess_experiments --problem chess --test_batch_size 300 --test_data 700000 --test_mode max_conf --train_batch_size 300 --train_data 600000 --train_log chess_train_log_8.txt --train_mode progressive --val_period 50 --warmup_period 3 --width 512
+python train_model.py problem.hyp.alpha=0 problem/model=ff_net_2d problem=chess name=chess_ablation
+python train_model.py problem.hyp.alpha=0 problem/model=ff_net_recall_2d problem=chess name=chess_ablation
+python train_model.py problem.hyp.alpha=0 problem/model=dt_net_2d problem=chess name=chess_ablation
+python train_model.py problem.hyp.alpha=0 problem/model=dt_net_recall_2d problem=chess name=chess_ablation
+python train_model.py problem.hyp.alpha=0.5 problem/model=dt_net_2d problem=chess name=chess_ablation
+python train_model.py problem.hyp.alpha=0.5 problem/model=dt_net_recall_2d problem=chess name=chess_ablation
+python train_model.py problem.hyp.alpha=1 problem/model=dt_net_2d problem=chess name=chess_ablation
+python train_model.py problem.hyp.alpha=1 problem/model=dt_net_recall_2d problem=chess name=chess_ablation
