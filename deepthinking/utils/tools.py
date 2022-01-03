@@ -1,4 +1,4 @@
-""" common.py
+""" tools.py
     Utility functions that are common to all tasks
 
     Collaboratively developed
@@ -8,20 +8,23 @@
     Developed for DeepThinking project
     October 2021
 """
-
+import logging
+import random
 from datetime import datetime
 
 import torch
 from icecream import ic
-from torch.optim import SGD, Adam
+from torch.optim import SGD, Adam, AdamW
 from torch.optim.lr_scheduler import MultiStepLR, CosineAnnealingLR
 
 import deepthinking.models as models
 from .mazes_data import prepare_maze_loader
 from .prefix_sums_data import prepare_prefix_loader
 from .chess_data import prepare_chess_loader
+from .. import adjectives, names
 
-from .warmup import ExponentialWarmup
+from .warmup import ExponentialWarmup, LinearWarmup
+
 # Ignore statements for pylint:
 #     Too many branches (R0912), Too many statements (R0915), No member (E1101),
 #     Not callable (E1102), Invalid name (C0103), No exception (W0702),
@@ -29,24 +32,36 @@ from .warmup import ExponentialWarmup
 # pylint: disable=R0912, R0915, E1101, E1102, C0103, W0702, R0914, C0116, C0115
 
 
-def get_dataloaders(args):
-    if args.problem == "prefix_sums":
-        return prepare_prefix_loader(train_batch_size=args.train_batch_size,
-                                     test_batch_size=args.test_batch_size,
-                                     train_data=args.train_data,
-                                     test_data=args.test_data)
-    elif args.problem == "mazes":
-        return prepare_maze_loader(train_batch_size=args.train_batch_size,
-                                   test_batch_size=args.test_batch_size,
-                                   train_data=args.train_data,
-                                   test_data=args.test_data)
-    elif args.problem == "chess":
-        return prepare_chess_loader(train_batch_size=args.train_batch_size,
-                                    test_batch_size=args.test_batch_size,
-                                    train_data=args.train_data,
-                                    test_data=args.test_data)
+def setup_test_iterations(cfg):
+    cfg.problem.model.test_iterations.append(cfg.problem.model.max_iters)
+    cfg.problem.model.test_iterations = list(set(cfg.problem.model.test_iterations))
+    cfg.problem.model.test_iterations.sort()
+
+
+def generate_run_id():
+    hashstr = f"{adjectives[random.randint(0, len(adjectives))]}-{names[random.randint(0, len(names))]}"
+    return hashstr
+
+
+def get_dataloaders(problem_args):
+    if problem_args.name == "prefix_sums":
+        return prepare_prefix_loader(train_batch_size=problem_args.hyp.train_batch_size,
+                                     test_batch_size=problem_args.hyp.test_batch_size,
+                                     train_data=problem_args.train_data,
+                                     test_data=problem_args.test_data)
+    elif problem_args.name == "mazes":
+        return prepare_maze_loader(train_batch_size=problem_args.hyp.train_batch_size,
+                                   test_batch_size=problem_args.hyp.test_batch_size,
+                                   train_data=problem_args.train_data,
+                                   test_data=problem_args.test_data)
+    elif problem_args.name == "chess":
+        return prepare_chess_loader(train_batch_size=problem_args.hyp.train_batch_size,
+                                    test_batch_size=problem_args.hyp.test_batch_size,
+                                    train_data=problem_args.train_data,
+                                    test_data=problem_args.test_data)
     else:
-        raise ValueError(f"Invalid problem spec. {args.problem}")
+        raise ValueError(f"Invalid problem spec. {problem_args.name}")
+
 
 def get_model(model, width, max_iters, in_channels=3):
     model = model.lower()
@@ -54,44 +69,37 @@ def get_model(model, width, max_iters, in_channels=3):
     return net
 
 
-def get_optimizer(optimizer_name, net, max_iters, epochs, lr, lr_decay, lr_schedule, lr_factor,
-                  lr_throttle, warmup_period, state_dict):
+def get_optimizer(optim_args, net, state_dict):
+    optimizer_name = optim_args.optimizer.lower()
+    epochs = optim_args.epochs
+    lr = optim_args.lr
+    lr_decay = optim_args.lr_decay
+    lr_schedule = optim_args.lr_schedule
+    lr_factor = optim_args.lr_factor
+    warmup_period = optim_args.warmup_period
 
-    optimizer_name = optimizer_name.lower()
-
-    if lr_throttle:
-        # Reducing the lr here for the recurrent layers helps with stability,
-        # To date (July 21, 2021), we may only need this for maze models.
-        base_params = [p for n, p in net.named_parameters() if "recur" not in n]
-        recur_params = [p for n, p in net.named_parameters() if "recur" in n]
-        iters = max_iters
-        all_params = [{"params": base_params}, {"params": recur_params, "lr": lr / iters}]
-    else:
-        base_params = [p for n, p in net.named_parameters()]
-        recur_params = []
-        iters = 1
-        all_params = [{"params": base_params}]
-
-    # all_params = [{"params": base_params}, {"params": recur_params, "lr": lr / iters}]
+    all_params = [{"params": net.parameters()}]
 
     if optimizer_name == "sgd":
         optimizer = SGD(all_params, lr=lr, weight_decay=2e-4, momentum=0.9)
     elif optimizer_name == "adam":
         optimizer = Adam(all_params, lr=lr, weight_decay=2e-4)
+    elif optimizer_name == "adamw":
+        optimizer = AdamW(all_params, lr=lr, weight_decay=2e-4)
     else:
         raise ValueError(f"{ic.format()}: Optimizer choise of {optimizer_name} not yet implmented.")
 
     if state_dict is not None:
         optimizer.load_state_dict(state_dict)
         warmup_scheduler = ExponentialWarmup(optimizer, warmup_period=0)
+        # warmup_scheduler = LinearWarmup(optimizer, warmup_period=0)
     else:
         warmup_scheduler = ExponentialWarmup(optimizer, warmup_period=warmup_period)
+        # warmup_scheduler = LinearWarmup(optimizer, warmup_period=warmup_period)
 
     if lr_decay.lower() == "step":
-
         lr_scheduler = MultiStepLR(optimizer, milestones=lr_schedule,
                                    gamma=lr_factor, last_epoch=-1)
-
     elif lr_decay.lower() == "cosine":
         lr_scheduler = CosineAnnealingLR(optimizer, epochs, eta_min=0, last_epoch=-1, verbose=False)
     else:
@@ -100,7 +108,11 @@ def get_optimizer(optimizer_name, net, max_iters, epochs, lr, lr_decay, lr_sched
     return optimizer, warmup_scheduler, lr_scheduler
 
 
-def load_model_from_checkpoint(model, model_path, width, problem, max_iters, device):
+def load_model_from_checkpoint(problem, model_args, device):
+    model = model_args.model
+    model_path = model_args.model_path
+    width = model_args.width
+    max_iters = model_args.max_iters
     epoch = 0
     optimizer = None
 
@@ -113,7 +125,7 @@ def load_model_from_checkpoint(model, model_path, width, problem, max_iters, dev
     if device == "cuda":
         net = torch.nn.DataParallel(net)
     if model_path is not None:
-        print(f"Loading model from checkpoint {model_path}...")
+        logging.info(f"Loading model from checkpoint {model_path}...")
         state_dict = torch.load(model_path, map_location=device)
         net.load_state_dict(state_dict["net"])
         epoch = state_dict["epoch"] + 1

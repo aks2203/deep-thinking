@@ -21,12 +21,14 @@ class BasicBlock1D(nn.Module):
 
     expansion = 1
 
-    def __init__(self, in_planes, planes, stride=1):
+    def __init__(self, in_planes, planes, stride=1, group_norm=False):
         super().__init__()
         self.conv1 = nn.Conv1d(in_planes, planes, kernel_size=3,
                                stride=stride, padding=1, bias=False)
+        self.gn1 = nn.GroupNorm(4, planes, affine=False) if group_norm else nn.Sequential()
         self.conv2 = nn.Conv1d(planes, planes, kernel_size=3,
                                stride=1, padding=1, bias=False)
+        self.gn2 = nn.GroupNorm(4, planes, affine=False) if group_norm else nn.Sequential()
 
         self.shortcut = nn.Sequential()
         if stride != 1 or in_planes != self.expansion * planes:
@@ -34,8 +36,8 @@ class BasicBlock1D(nn.Module):
                                                     kernel_size=1, stride=stride, bias=False))
 
     def forward(self, x):
-        out = F.relu(self.conv1(x))
-        out = self.conv2(out)
+        out = F.relu(self.gn1(self.conv1(x)))
+        out = self.gn2(self.conv2(out))
         out += self.shortcut(x)
         out = F.relu(out)
         return out
@@ -46,12 +48,14 @@ class BasicBlock2D(nn.Module):
 
     expansion = 1
 
-    def __init__(self, in_planes, planes, stride=1):
+    def __init__(self, in_planes, planes, stride=1, group_norm=False):
         super().__init__()
         self.conv1 = nn.Conv2d(in_planes, planes, kernel_size=3,
                                stride=stride, padding=1, bias=False)
+        self.gn1 = nn.GroupNorm(4, planes, affine=False) if group_norm else nn.Sequential()
         self.conv2 = nn.Conv2d(planes, planes, kernel_size=3,
                                stride=1, padding=1, bias=False)
+        self.gn2 = nn.GroupNorm(4, planes, affine=False) if group_norm else nn.Sequential()
 
         self.shortcut = nn.Sequential()
         if stride != 1 or in_planes != self.expansion * planes:
@@ -59,8 +63,8 @@ class BasicBlock2D(nn.Module):
                                                     kernel_size=1, stride=stride, bias=False))
 
     def forward(self, x):
-        out = F.relu(self.conv1(x))
-        out = self.conv2(out)
+        out = F.relu(self.gn1(self.conv1(x)))
+        out = self.gn2(self.conv2(out))
         out += self.shortcut(x)
         out = F.relu(out)
         return out

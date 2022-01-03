@@ -1,0 +1,5 @@
+model: feedforward_net_recall_1d
+model_path:
+width: 400
+max_iters: 30
+test_iterations:

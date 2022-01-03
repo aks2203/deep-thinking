@@ -1,6 +1,8 @@
-from deepthinking.utils.testing_utils import test
-from deepthinking.utils.training_utils import train, TrainingSetup
+from deepthinking.adjectives import adjectives
+from deepthinking.names import names
 
+from deepthinking.utils.testing import test
+from deepthinking.utils.training import train, TrainingSetup
 
 from deepthinking import models
 from deepthinking import utils

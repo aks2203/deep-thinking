@@ -1,4 +1,4 @@
-""" testing_utils.py
+""" testing.py
     Utilities for testing models
 
     Collaboratively developed
@@ -21,13 +21,13 @@ from tqdm import tqdm
 # pylint: disable=R0912, R0915, E1101, E1102, C0103, W0702, R0914, C0116, C0115, C0114
 
 
-def test(net, loaders, mode, iters, problem, device, disable_tqdm=False):
+def test(net, loaders, mode, iters, problem, device):
     accs = []
     for loader in loaders:
         if mode == "default":
-            accuracy = test_default(net, loader, iters, problem, device, disable_tqdm)
+            accuracy = test_default(net, loader, iters, problem, device)
         elif mode == "max_conf":
-            accuracy = test_max_conf(net, loader, iters, problem, device, disable_tqdm)
+            accuracy = test_max_conf(net, loader, iters, problem, device)
         else:
             raise ValueError(f"{ic.format()}: test_{mode}() not implemented.")
         accs.append(accuracy)
@@ -52,14 +52,14 @@ def get_predicted(inputs, outputs, problem):
     return predicted
 
 
-def test_default(net, testloader, iters, problem, device, disable_tqdm):
+def test_default(net, testloader, iters, problem, device):
     max_iters = max(iters)
     net.eval()
     corrects = torch.zeros(max_iters)
     total = 0
 
     with torch.no_grad():
-        for inputs, targets in tqdm(testloader, leave=False, disable=disable_tqdm):
+        for inputs, targets in tqdm(testloader, leave=False):
             inputs, targets = inputs.to(device), targets.to(device)
 
             all_outputs = net(inputs, iters_to_do=max_iters)
@@ -79,7 +79,7 @@ def test_default(net, testloader, iters, problem, device, disable_tqdm):
     return ret_acc
 
 
-def test_max_conf(net, testloader, iters, problem, device, disable_tqdm):
+def test_max_conf(net, testloader, iters, problem, device):
     max_iters = max(iters)
     net.eval()
     corrects = torch.zeros(max_iters).to(device)
@@ -87,7 +87,7 @@ def test_max_conf(net, testloader, iters, problem, device, disable_tqdm):
     softmax = torch.nn.functional.softmax
 
     with torch.no_grad():
-        for inputs, targets in tqdm(testloader, leave=False, disable=disable_tqdm):
+        for inputs, targets in tqdm(testloader, leave=False):
             inputs, targets = inputs.to(device), targets.to(device)
             targets = targets.view(targets.size(0), -1)
             total += targets.size(0)

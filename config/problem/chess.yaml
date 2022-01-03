@@ -1,0 +1,10 @@
+defaults:
+  - hyp: _default_hyperparameters
+  - model: dt_net_2d
+
+name: chess
+test_data: 700_000
+train_data: 600_000
+
+model:
+  width: 512

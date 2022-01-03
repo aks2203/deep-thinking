@@ -1,0 +1,24 @@
+defaults:
+  - problem: prefix_sums
+  - override hydra/job_logging: custom
+  - _self_
+
+hydra:
+  run:
+    dir: ./outputs/${name}/testing-${run_id}
+  job_logging:
+    handlers:
+      file:
+        filename: testing.log
+
+name: testing_default
+
+problem:
+  model:
+    test_iterations:
+      low: 30
+      high: 50
+    model_path:
+
+quick_test: False
+

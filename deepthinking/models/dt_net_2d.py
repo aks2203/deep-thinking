@@ -23,11 +23,12 @@ from .blocks import BasicBlock2D as BasicBlock
 class DTNet(nn.Module):
     """DeepThinking Network 2D model class"""
 
-    def __init__(self, block, num_blocks, width, in_channels=3, recall=True, **kwargs):
+    def __init__(self, block, num_blocks, width, in_channels=3, recall=True, group_norm=False, **kwargs):
         super().__init__()
 
         self.recall = recall
         self.width = int(width)
+        self.group_norm = group_norm
         proj_conv = nn.Conv2d(in_channels, width, kernel_size=3,
                               stride=1, padding=1, bias=False)
 
@@ -58,7 +59,7 @@ class DTNet(nn.Module):
         strides = [stride] + [1]*(num_blocks-1)
         layers = []
         for strd in strides:
-            layers.append(block(self.width, planes, strd))
+            layers.append(block(self.width, planes, strd, group_norm=self.group_norm))
             self.width = planes * block.expansion
         return nn.Sequential(*layers)
 
@@ -87,5 +88,13 @@ def dt_net_2d(width, **kwargs):
     return DTNet(BasicBlock, [2], width=width, in_channels=kwargs["in_channels"], recall=False)
 
 
-def dt_net_recallx_2d(width, **kwargs):
+def dt_net_recall_2d(width, **kwargs):
     return DTNet(BasicBlock, [2], width=width, in_channels=kwargs["in_channels"], recall=True)
+
+
+def dt_net_gn_2d(width, **kwargs):
+    return DTNet(BasicBlock, [2], width=width, in_channels=kwargs["in_channels"], recall=False, group_norm=True)
+
+
+def dt_net_recall_gn_2d(width, **kwargs):
+    return DTNet(BasicBlock, [2], width=width, in_channels=kwargs["in_channels"], recall=True, group_norm=True)

@@ -1,0 +1,7 @@
+defaults:
+  - hyp: prefix_sums_default
+  - model: dt_net_recall_1d
+
+name: prefix_sums
+test_data: 512
+train_data: 32

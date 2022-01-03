@@ -23,11 +23,12 @@ from .blocks import BasicBlock1D as BasicBlock
 class FeedForwardNet1D(nn.Module):
     """Modified Residual Network model class"""
 
-    def __init__(self, block, num_blocks, width, recall, max_iters=8):
+    def __init__(self, block, num_blocks, width, recall, max_iters=8, group_norm=False):
         super().__init__()
 
         self.width = int(width)
         self.recall = recall
+        self.group_norm = group_norm
 
         proj_conv = nn.Conv1d(1, width, kernel_size=3, stride=1, padding=1, bias=False)
 
@@ -56,7 +57,7 @@ class FeedForwardNet1D(nn.Module):
         strides = [stride] + [1] * (num_blocks - 1)
         layers = []
         for strd in strides:
-            layers.append(block(self.width, planes, strd))
+            layers.append(block(self.width, planes, strd, self.group_norm))
             self.width = planes * block.expansion
         return nn.Sequential(*layers)
 
@@ -87,13 +88,21 @@ def feedforward_net_1d(width, **kwargs):
     return FeedForwardNet1D(BasicBlock, [2], width, recall=False, max_iters=kwargs["max_iters"])
 
 
-def feedforward_net_recallx_1d(width, **kwargs):
+def feedforward_net_recall_1d(width, **kwargs):
     return FeedForwardNet1D(BasicBlock, [2], width, recall=True, max_iters=kwargs["max_iters"])
+
+
+def feedforward_net_gn_1d(width, **kwargs):
+    return FeedForwardNet1D(BasicBlock, [2], width, recall=False, max_iters=kwargs["max_iters"], group_norm=True)
+
+
+def feedforward_net_recall_gn_1d(width, **kwargs):
+    return FeedForwardNet1D(BasicBlock, [2], width, recall=True, max_iters=kwargs["max_iters"], group_norm=True)
 
 
 # Testing
 if __name__ == "__main__":
-    net = feedforward_net_recallx_1d(width=5, max_iters=5)
+    net = feedforward_net_recall_1d(width=5, max_iters=5)
     print(net)
     x_test = torch.rand(30).reshape([3, 1, 10])
     out_test, _ = net(x_test)
