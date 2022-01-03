@@ -48,24 +48,21 @@ def main(cfg: DictConfig):
                         ("model", "max_iters"),
                         ("model", "model"),
                         ("hyp", "optimizer"),
-                        ("problem", "train_data"),
                         ("hyp", "train_mode"),
                         ("model", "width")]
     for k1, k2 in cfg_keys_to_load:
-        cfg[k1][k2] = training_args[k1][k2]
-    # dt.utils.setup_test_iterations(cfg)
+        cfg["problem"][k1][k2] = training_args["problem"][k1][k2]
+    cfg.problem.train_data = cfg.problem.train_data
+
     log.info(OmegaConf.to_yaml(cfg))
 
     ####################################################
     #               Dataset and Network and Optimizer
-    loaders = dt.utils.get_dataloaders(cfg)
+    loaders = dt.utils.get_dataloaders(cfg.problem)
 
-    model_path = os.path.join(cfg.problem.model.model_path, "model_best.pth")
-    net, start_epoch, optimizer_state_dict = dt.utils.load_model_from_checkpoint(cfg.problem.model.model,
-                                                                                 model_path,
-                                                                                 cfg.problem.model.width,
-                                                                                 cfg.problem.name,
-                                                                                 cfg.problem.model.max_iters,
+    cfg.problem.model.model_path = os.path.join(cfg.problem.model.model_path, "model_best.pth")
+    net, start_epoch, optimizer_state_dict = dt.utils.load_model_from_checkpoint(cfg.problem.name,
+                                                                                 cfg.problem.model,
                                                                                  device)
     pytorch_total_params = sum(p.numel() for p in net.parameters())
     log.info(f"This {cfg.problem.model.model} has {pytorch_total_params/1e6:0.3f} million parameters.")
@@ -74,7 +71,8 @@ def main(cfg: DictConfig):
     ####################################################
     #        Test
     log.info("==> Starting testing...")
-    test_iterations = list(range(cfg.problem.model.test_iterations["low"], cfg.problem.model.test_iterations["high"] + 1))
+    test_iterations = list(range(cfg.problem.model.test_iterations["low"],
+                                 cfg.problem.model.test_iterations["high"] + 1))
     if cfg.quick_test:
         test_acc = dt.test(net, [loaders["test"]], cfg.problem.hyp.test_mode, test_iterations, cfg.problem.name, device)
         test_acc = test_acc[0]
@@ -96,7 +94,7 @@ def main(cfg: DictConfig):
                          ("lr_factor", cfg.problem.hyp.lr_factor),
                          ("max_iters", cfg.problem.model.max_iters),
                          ("model", model_name_str),
-                         ("model_path", model_path),
+                         ("model_path", cfg.problem.model.model_path),
                          ("num_params", pytorch_total_params),
                          ("optimizer", cfg.problem.hyp.optimizer),
                          ("val_acc", val_acc),
