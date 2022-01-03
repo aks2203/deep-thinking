@@ -18,7 +18,7 @@ problem:
     test_iterations:
       low: 30
       high: 50
-    model_path: ../20211220-14:39-training-yogic-Tamora
+    model_path:
 
 quick_test: False
 
