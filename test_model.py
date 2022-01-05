@@ -71,8 +71,12 @@ def main(cfg: DictConfig):
     ####################################################
     #        Test
     log.info("==> Starting testing...")
-    test_iterations = list(range(cfg.problem.model.test_iterations["low"],
-                                 cfg.problem.model.test_iterations["high"] + 1))
+    if "feedforward" in cfg.problem.model.model:
+        test_iterations = [cfg.problem.model.max_iters]
+    else:
+        test_iterations = list(range(cfg.problem.model.test_iterations["low"],
+                                     cfg.problem.model.test_iterations["high"] + 1))
+
     if cfg.quick_test:
         test_acc = dt.test(net, [loaders["test"]], cfg.problem.hyp.test_mode, test_iterations, cfg.problem.name, device)
         test_acc = test_acc[0]

@@ -1,6 +1,6 @@
 defaults:
-  - hyp: _default_hyperparameters
-  - model: dt_net_2d
+  - hyp: chess_default
+  - model: dt_net_recall_2d
 
 name: chess
 test_data: 700_000

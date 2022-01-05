@@ -15,4 +15,4 @@ test_mode: default
 train_batch_size: 100
 train_mode: progressive
 val_period: 20
-warmup_period: 5
+warmup_period: 10
