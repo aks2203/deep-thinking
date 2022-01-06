@@ -7,7 +7,7 @@ lr_factor: 0.1
 lr_schedule:
   - 100
   - 110
-lr_throttle: True
+lr_throttle: False
 optimizer: sgd
 save_period: -1
 test_batch_size: 300

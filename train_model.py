@@ -45,7 +45,7 @@ def main(cfg: DictConfig):
     cfg.problem.model.test_iterations = list(range(cfg.problem.model.test_iterations["low"],
                                                    cfg.problem.model.test_iterations["high"] + 1))
     assert 0 <= cfg.problem.hyp.alpha <= 1, "Weighting for loss (alpha) not in [0, 1], exiting."
-    writer = SummaryWriter(log_dir=f"tensorboard")
+    writer = SummaryWriter(log_dir=f"tensorboard-{cfg.problem.model.model}-{cfg.problem.hyp.alpha}")
 
     ####################################################
     #               Dataset and Network and Optimizer
