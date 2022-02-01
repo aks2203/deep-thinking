@@ -44,14 +44,31 @@ def add(sample, n):
         q = q[:idx] + a[idx] + q[(idx + 1):]
     return q, a
 
+def sub(sample, n):
+    q, a = sample
+    for _ in range(n):
+        empty_places = [k for k, v in enumerate(q) if v != '0']
+        idx = random.choice(empty_places)
+        q = q[:idx] + '0' + q[(idx + 1):]
+    return q, a
 
-def generate(pool, givens_max, n_per_givens):
+def generate(pool, n_per_givens):
     generated = []
-    for i in range(n_per_givens):
-        sample = random.choice(pool)
-        sample = permute(sample)
-        sample = add(sample, givens_max-17)
-        generated.append(sample)
+    for givens_max in range(17,35):
+        print(givens_max)
+        print(int(n_per_givens/18))
+        for i in range(int(n_per_givens/18)):
+            sample = random.choice(pool)
+            if len(sample[0]) == 81:
+                sample = permute(sample)
+                missing_zeros = sample[0].count('0')
+                present = 81 - missing_zeros
+
+                if present < givens_max:
+                    sample = add(sample, givens_max - present)
+                else:
+                    sample = sub(sample, present - givens_max)
+                generated.append(sample)
 
     random.shuffle(generated)
     return generated
@@ -62,10 +79,7 @@ def dump(fname, samples):
             f.write(q + "," + a + "\n")
 
 def create_data():
-    url = "https://www.dropbox.com/s/bcf5q30oryg0csw/sudoku17.txt?dl=1"
-    fname = "/tmp/sudoku17.txt"
-    urllib.request.urlretrieve(url, fname)
-
+    fname = './sudoku.csv'
     with open(fname) as f:
         lines = f.readlines()
 
@@ -73,21 +87,19 @@ def create_data():
     hard = random.sample(hard, len(hard))  # shuffled copy
 
     n_test = 10000
-    n_valid = 1000
+    n_valid = 20000
 
     test_pool = hard[:n_test]
     valid_pool = hard[n_test:n_test + n_valid]
     train_pool = hard[n_test + n_valid:]
 
-    givens_max = 34
-    train = generate(train_pool, givens_max, 30000)
-    valid = generate(valid_pool, givens_max, 1000)
-    givens_max = 17
-    test = generate(test_pool, givens_max, 10000)
+    train = generate(train_pool, 900000)
+    valid = generate(valid_pool, 20000)
+    test = generate(test_pool, 10000)
 
-    dump('train.csv', train)
-    dump('valid.csv', valid)
-    dump('test.csv', test)
+    dump('train_4.csv', train)
+    dump('valid_4.csv', valid)
+    dump('test_4.csv', test)
 
 def read_csv(fname):
     print("Reading %s..." % fname)
@@ -126,13 +138,13 @@ class dataset(Dataset):
         input, target = self.data[idx]
         return input, target
 
-def prepare_sudoku_loader(train_batch_size, test_batch_size, train_data, test_data, shuffle=True):
+def prepare_sudoku_4_loader(train_batch_size, test_batch_size, train_data, test_data, shuffle=True):
 
-    create_data()
+    #create_data()
 
-    trainset = dataset(root_dir = './', dataset_type='train')
-    valset = dataset(root_dir='./', dataset_type='valid')
-    testset = dataset(root_dir='./', dataset_type='test')
+    trainset = dataset(root_dir = './', dataset_type='train_4')
+    valset = dataset(root_dir='./', dataset_type='valid_4')
+    testset = dataset(root_dir='./', dataset_type='test_4')
 
     trainloader = data.DataLoader(trainset,
                                   num_workers=0,

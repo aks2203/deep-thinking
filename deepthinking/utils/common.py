@@ -21,6 +21,10 @@ from .mazes_data import prepare_maze_loader
 from .prefix_sums_data import prepare_prefix_loader
 from .chess_data import prepare_chess_loader
 from .sudoku import prepare_sudoku_loader
+from .sudoku_2 import prepare_sudoku_2_loader
+from .sudoku_3 import prepare_sudoku_3_loader
+from .sudoku_4 import prepare_sudoku_4_loader
+from .sudoku_5 import prepare_sudoku_5_loader
 
 from .warmup import ExponentialWarmup
 # Ignore statements for pylint:
@@ -48,6 +52,28 @@ def get_dataloaders(args):
                                     test_data=args.test_data)
     elif args.problem == "sudoku":
         return prepare_sudoku_loader(train_batch_size=args.train_batch_size,
+                                    test_batch_size=args.test_batch_size,
+                                    train_data=args.train_data,
+                                    test_data=args.test_data)
+    elif args.problem == "sudoku_2":
+        return prepare_sudoku_2_loader(train_batch_size=args.train_batch_size,
+                                    test_batch_size=args.test_batch_size,
+                                    train_data=args.train_data,
+                                    test_data=args.test_data)
+
+    elif args.problem == "sudoku_3":
+        return prepare_sudoku_3_loader(train_batch_size=args.train_batch_size,
+                                    test_batch_size=args.test_batch_size,
+                                    train_data=args.train_data,
+                                    test_data=args.test_data)
+
+    elif args.problem == "sudoku_4":
+        return prepare_sudoku_4_loader(train_batch_size=args.train_batch_size,
+                                    test_batch_size=args.test_batch_size,
+                                    train_data=args.train_data,
+                                    test_data=args.test_data)
+    elif args.problem == "sudoku_5":
+        return prepare_sudoku_5_loader(train_batch_size=args.train_batch_size,
                                     test_batch_size=args.test_batch_size,
                                     train_data=args.train_data,
                                     test_data=args.test_data)

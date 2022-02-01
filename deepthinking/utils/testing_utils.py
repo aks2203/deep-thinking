@@ -34,6 +34,10 @@ def test(net, loaders, mode, iters, problem, device, disable_tqdm=False):
             accuracy = test_default_zero(net, loader, iters, problem, device, disable_tqdm)
         elif mode == "default_small_edit":
             accuracy = test_default_small_edit(net, loader, iters, problem, device, disable_tqdm)
+        elif mode == "default_sudoku":
+            accuracy = test_default_sudoku(net, loader, iters, problem, device, disable_tqdm)
+        elif mode == "max_conf_and_default":
+            accuracy = test_max_conf_and_default(net, loader, iters, problem, device, disable_tqdm)
         else:
             raise ValueError(f"{ic.format()}: test_{mode}() not implemented.")
         accs.append(accuracy)
@@ -54,8 +58,123 @@ def get_predicted(inputs, outputs, problem):
         outputs[:, 1][outputs[:, 1] < top_2] = -float("Inf")
         outputs[:, 0] = -float("Inf")
         predicted = outputs.argmax(1)
+    elif problem in ["sudoku_5", "sudoku_4", "sudoku_3", "sudoku_2"]:
+        predicted = predicted * (inputs.max(1)[0].view(inputs.size(0), -1) == 0)
+        predicted = predicted + inputs.max(1)[0].view(inputs.size(0), -1)
 
     return predicted
+
+
+def isinRange(board, input, to_print):
+    N = 9
+    for i in range(0, N):
+        for j in range(0, N):
+            if ((board[i][j] <= 0) or
+                    (board[i][j] > 9)):
+                return False
+            if input[i][j] != 0:
+                if input[i][j] != board[i][j]:
+                    if to_print:
+                        print(i,j)
+                    return False
+
+    return True
+
+
+def isValidSudoku(board, input, to_print):
+    N = 9
+    if (isinRange(board, input, to_print) == False):
+        return False
+    unique = [False] * (N + 1)
+
+    for i in range(0, N):
+
+        for m in range(0, N + 1):
+            unique[m] = False
+
+        for j in range(0, N):
+            Z = int(board[i][j])
+            if (unique[Z] == True):
+                return False
+            unique[Z] = True
+
+    for i in range(0, N):
+        for m in range(0, N + 1):
+            unique[m] = False
+        for j in range(0, N):
+            Z = int(board[j][i])
+            if (unique[Z] == True):
+                return False
+            unique[Z] = True
+
+    for i in range(0, N - 2, 3):
+        for j in range(0, N - 2, 3):
+            for m in range(0, N + 1):
+                unique[m] = False
+            for k in range(0, 3):
+                for l in range(0, 3):
+                    X = i + k
+                    Y = j + l
+                    Z = int(board[X][Y])
+                    if (unique[Z] == True):
+                        return False
+                    unique[Z] = True
+    return True
+
+
+def find_sudoku_correct(inputs, predicted, to_print):
+    corrects = 0
+    for bs in range(inputs.shape[0]):
+        input = inputs[bs]
+        predict = predicted[bs]
+        if(isValidSudoku(predict, input, to_print)):
+            corrects+=1
+            # if to_print:
+            #     print("Valid")
+
+    if to_print:
+        print(corrects)
+
+    return corrects
+
+
+def test_default_sudoku(net, testloader, iters, problem, device, disable_tqdm):
+    max_iters = max(iters)
+    net.eval()
+    corrects = torch.zeros(max_iters)
+    total = 0
+    batch = 0
+    with torch.no_grad():
+        for inputs, targets in tqdm(testloader, leave=False, disable=disable_tqdm):
+            inputs, targets = inputs.to(device), targets.to(device)
+
+            all_outputs = net(inputs, iters_to_do=max_iters)
+
+            for i in range(all_outputs.size(1)):
+                if i % 100 == 0:
+                    print(i)
+                outputs = all_outputs[:, i]
+                outputs = outputs.view(outputs.size(0), outputs.size(1), -1)
+                predicted = get_predicted(inputs, outputs, problem)
+                targets = targets.view(targets.size(0), -1)
+                if i+1 in iters:
+                    predicted = predicted.reshape(predicted.size(0), 9, 9)
+                    inputs_r = inputs.reshape(inputs.size(0), 9, 9)
+                    to_print = False
+                    if i == max_iters - 1:
+                        to_print = True
+                    corrects[i] += find_sudoku_correct(inputs_r, predicted, to_print)
+
+            total += targets.size(0)
+            batch += 1
+            # if batch == 5:
+            #     break
+
+    accuracy = 100.0 * corrects / total
+    ret_acc = {}
+    for ite in iters:
+        ret_acc[ite] = accuracy[ite - 1].item()
+    return ret_acc
 
 
 def test_default(net, testloader, iters, problem, device, disable_tqdm):
@@ -303,4 +422,40 @@ def test_default_small_edit(net, testloader, iters, problem, device, disable_tqd
     ret_acc = {}
     for ite in iters:
         ret_acc[ite] = accuracy[ite - 1].item()
+    return ret_acc
+
+
+def test_max_conf_and_default(net, testloader, iters, problem, device, disable_tqdm):
+    print(iters)
+    max_iters = max(iters)
+    net.eval()
+    corrects_max_conf_all = torch.zeros(max_iters).to(device)
+    corrects_default_all  = torch.zeros(max_iters).to(device)
+    wrong_pixels_all = torch.zeros(max_iters).to(device)
+
+    total = 0
+    softmax = torch.nn.functional.softmax
+
+    with torch.no_grad():
+        index = 0
+        for inputs, targets in tqdm(testloader, leave=False, disable=disable_tqdm):
+            inputs, targets = inputs.to(device), targets.to(device)
+            targets = targets.view(targets.size(0), -1)
+            total += targets.size(0)
+
+            corrects_max_conf, corrects_default, wrong_pixels = net(inputs, iters_to_do=max_iters, targets=targets, problem=problem)
+            corrects_max_conf_all += corrects_max_conf
+            corrects_default_all += corrects_default
+            wrong_pixels_all += wrong_pixels
+            index+=1
+            if index == 10:
+                break
+
+    accuracy_max_conf = 100 * corrects_max_conf_all.long().cpu() / total
+    accuracy_default_all = 100 * corrects_max_conf_all.long().cpu() / total
+    wrong_pixels_all = wrong_pixels_all.cpu()/ total
+
+    ret_acc = {}
+    for ite in iters:
+        ret_acc[ite] = (accuracy_max_conf[ite-1].item(), accuracy_default_all[ite-1].item(), wrong_pixels_all[ite-1].item())
     return ret_acc
