@@ -1,5 +1,7 @@
 # DeepThinking 
-A centralized repository for deep thinking projects. Developed collaboratively by Avi Schwarzschild, Eitan Borgnia, Arpit Bansal, Zeyad Emam, and Jonas Geiping, all at the University of Maryland. This repository contains the official implementation of DeepThinking Networks (DT nets), including architectures with recall and a training routine with the progressive loss term. Much of the structure of this repository is based on the code in [Easy-To-Hard](http://github.com/aks2203/easy-to-hard).
+A centralized repository for deep thinking projects. Developed collaboratively by Avi Schwarzschild, Eitan Borgnia, Arpit Bansal, Zeyad Emam, and Jonas Geiping, all at the University of Maryland. This repository contains the official implementation of DeepThinking Networks (DT nets), including architectures with recall and a training routine with the progressive loss term. Much of the structure of this repository is based on the code in [Easy-To-Hard](http://github.com/aks2203/easy-to-hard). In fact, this repository is capable of executing all the same experiments and should be used instead.
+
+February 11, 2022: Code initially realsed with our paper on Arxiv (link will be added when it posts). Several features, including some trained models will be added in the comming weeks.
 
 [comment]: <> (introduced in Thinking Deeper With Recurrent Networks: Logical Extrapolation Without Overthinking)
 
@@ -20,7 +22,7 @@ To train models, run [train_model.py](train_model.py) with the desired command l
 
 This command will train and save a model. For more examples see the [launch](launch) directory, where we have left several files corresponding to our main experiments.
 
-The optional commandline argument `problem.train_data=<N>` determines the data to be used for training. Here, `N` is an integer that corresponds to `N`-bit strings for prefix sums, `N` x `N` mazes, and indices [0, `N`] for chess data. Additionally, the flag `problem.test_data=<N>` determines the data to be used for testing. For chess puzzles, the test data flag differs slightly from train data. `problem.test_data=<N>` instead corresponds to indices [`N`-100K, `N`]. The other problem domains use the same nomenclature for training/testing. Also, the flag `problem.model.test_iterations` allows you to pass a list of iterations to use for testing, i.e. at which to save the accuracy. More information about the structure of other command line arguments can be found in the config files.
+The optional commandline argument `problem.train_data=<N>` determines the data to be used for training. Here, `N` is an integer that corresponds to `N`-bit strings for prefix sums, `N` x `N` mazes, and indices [0, `N`] for chess data. Additionally, the flag `problem.test_data=<N>` determines the data to be used for testing. For chess puzzles, the test data flag differs slightly from train data. `problem.test_data=<N>` instead corresponds to indices [`N`-100K, `N`]. The other problem domains use the same nomenclature for training/testing. Also, the flags `problem.model.test_iterations.low` and `problem.model.test_iterations.high` allow you to pass a range of iterations to use for testing, i.e. at which to save the accuracy. More information about the structure of other command line arguments can be found in the config files.
 
 ## Saving Protocol (during training)
 
@@ -28,15 +30,15 @@ Each time [train_model.py](train_model.py) is executed, a hash-like adjective-Na
 
 ```$ python train_model.py name=<path_to_exp>```
 
-During training, the best performing model is saved in the folder `outputs/<path_to_exp>/training-<run_id>/model_best.pth` and the corresponding arguments for that run are saved in `outputs/<path_to_exp>/training-<run_id>/.hydra/`. The `<path_to_exp>/training-<run_id>` string is necessary to later run the [test_model.py](test_model.py) file for testing on harder/larger datasets than used during training.
+During training, the best performing model (on held-out validation set) is saved in the folder `outputs/<path_to_exp>/training-<run_id>/model_best.pth` and the corresponding arguments for that run are saved in `outputs/<path_to_exp>/training-<run_id>/.hydra/`. The `<path_to_exp>/training-<run_id>` string is necessary to later run the [test_model.py](test_model.py) file for testing on harder/larger datasets than used during training.
 
-The results for the test data used in the [train_model.py](train_mode.py) run are saved in `outputs/<path_to_exp>/training-<run_id>/stats.json`, the tensorboard data is saved in `outputs/<path_to_exp>/training-<run_id>/tensorboard`.
+The results (i.e. accuracy metrics) for the test data used in the [train_model.py](train_mode.py) run are saved in `outputs/<path_to_exp>/training-<run_id>/stats.json`, the tensorboard data is saved in `outputs/<path_to_exp>/training-<run_id>/tensorboard`.
 
-The outputs directory should be as follows. Note that the default value of `<path_to_exp>` is `training_default`, and that `upstream-Melissa` is the adjective-Name combination for this example.
+The outputs directory should be as follows. Note that the default value of `<path_to_exp>` is `training_default`, and that `happy-Melissa` is the adjective-Name combination for this example.
 ```
 outputs
 └── training_default
-    └── training-upstream-Melissa
+    └── training-happy-Melissa
         ├── .hydra
         │   ├── config.yaml
         │   ├── hydra.yaml

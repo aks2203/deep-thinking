@@ -58,6 +58,7 @@ def main(cfg: DictConfig):
     log.info(f"This {cfg.problem.model.model} has {pytorch_total_params/1e6:0.3f} million parameters.")
     log.info(f"Training will start at epoch {start_epoch}.")
     optimizer, warmup_scheduler, lr_scheduler = dt.utils.get_optimizer(cfg.problem.hyp,
+                                                                       cfg.problem.model,
                                                                        net,
                                                                        optimizer_state_dict)
     train_setup = dt.TrainingSetup(optimizer=optimizer,

@@ -63,7 +63,7 @@ def get_model(model, width, max_iters, in_channels=3):
     return net
 
 
-def get_optimizer(optim_args, net, state_dict):
+def get_optimizer(optim_args, model_args, net, state_dict):
     optimizer_name = optim_args.optimizer.lower()
     epochs = optim_args.epochs
     lr = optim_args.lr
@@ -72,7 +72,22 @@ def get_optimizer(optim_args, net, state_dict):
     lr_factor = optim_args.lr_factor
     warmup_period = optim_args.warmup_period
 
-    all_params = [{"params": net.parameters()}]
+    if hasattr(optim_args, "old_throttle"):
+        if optim_args.old_throttle:
+            logging.info("Old throttle in use.")
+            # Reducing the lr here for the recurrent layers helps with stability,
+            # To date (July 21, 2021), we may only need this for maze models.
+            base_params = [p for n, p in net.named_parameters() if "recur" not in n]
+            recur_params = [p for n, p in net.named_parameters() if "recur" in n]
+            iters = model_args.max_iters
+            all_params = [{"params": base_params}, {"params": recur_params, "lr": lr / iters}]
+    else:
+        base_params = [p for n, p in net.named_parameters()]
+        recur_params = []
+        iters = 1
+        all_params = [{"params": base_params}]
+
+    # all_params = [{"params": net.parameters()}]
 
     if optimizer_name == "sgd":
         optimizer = SGD(all_params, lr=lr, weight_decay=2e-4, momentum=0.9)
