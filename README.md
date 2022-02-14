@@ -1,9 +1,34 @@
 # DeepThinking 
-A centralized repository for deep thinking projects. Developed collaboratively by Avi Schwarzschild, Eitan Borgnia, Arpit Bansal, Zeyad Emam, and Jonas Geiping, all at the University of Maryland. This repository contains the official implementation of DeepThinking Networks (DT nets), including architectures with recall and a training routine with the progressive loss term. Much of the structure of this repository is based on the code in [Easy-To-Hard](http://github.com/aks2203/easy-to-hard). In fact, this repository is capable of executing all the same experiments and should be used instead.
+A centralized repository for deep thinking projects. Developed collaboratively by Avi Schwarzschild, Eitan Borgnia, Arpit Bansal, Zeyad Emam, and Jonas Geiping, all at the University of Maryland. This repository contains the official implementation of DeepThinking Networks (DT nets), including architectures with recall and a training routine with the progressive loss term. Much of the structure of this repository is based on the code in [Easy-To-Hard](http://github.com/aks2203/easy-to-hard). In fact, this repository is capable of executing all the same experiments and should be used instead. Our work on thinking systems is availble in two papers:
+
+[End-to-end Algorithm Synthesis with Recurrent Networks: Logical Extrapolation Without Overthinking](https://arxiv.org/abs/2202.05826)
+
+[Can You Learn an Algorithm? Generalizing from Easy to Hard Problems with Recurrent Networks (NeurIPS '21)](https://proceedings.neurips.cc/paper/2021/file/3501672ebc68a5524629080e3ef60aef-Paper.pdf) 
 
 February 11, 2022: Code initially realsed with our paper on Arxiv (link will be added when it posts). Several features, including some trained models will be added in the comming weeks.
 
-[comment]: <> (introduced in Thinking Deeper With Recurrent Networks: Logical Extrapolation Without Overthinking)
+## Citing Our Work
+To cite our work, please reference the appropriate paper.
+```
+@misc{bansal2022endtoend,
+      title={End-to-end Algorithm Synthesis with Recurrent Networks: Logical Extrapolation Without Overthinking}, 
+      author={Arpit Bansal and Avi Schwarzschild and Eitan Borgnia and Zeyad Emam and Furong Huang and Micah Goldblum and Tom Goldstein},
+      year={2022},
+      eprint={2202.05826},
+      archivePrefix={arXiv},
+      primaryClass={cs.LG}
+}
+```
+
+```
+@article{schwarzschild2021can,
+  title={Can You Learn an Algorithm? Generalizing from Easy to Hard Problems with Recurrent Networks},
+  author={Schwarzschild, Avi and Borgnia, Eitan and Gupta, Arjun and Huang, Furong and Vishkin, Uzi and Goldblum, Micah and Goldstein, Tom},
+  journal={Advances in Neural Information Processing Systems},
+  volume={34},
+  year={2021}
+}
+```
 
 ## Getting Started
 
