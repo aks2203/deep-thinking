@@ -37,34 +37,6 @@ class TrainingSetup:
     alpha: "typing.Any"
     max_iters: "typing.Any"
     problem: "typing.Any"
-    throttle: "typing.Any"
-
-
-def do_unscaled_backward(loss_max_iters, loss_progressive, alpha):
-    total_loss = (1 - alpha) * loss_max_iters + alpha * loss_progressive
-    total_loss.backward()
-    return total_loss
-
-
-def do_scaled_backward(net, loss_max_iters, loss_progressive, alpha, k, max_iters):
-    loss_max_iters = (1 - alpha) * loss_max_iters
-    loss_progressive = alpha * loss_progressive
-    if 1 > alpha > 0:
-        loss_max_iters.backward()
-        for n, p in net.named_parameters():
-            if "recur" in n:
-                p.grad *= (k/max_iters)
-    elif alpha == 0:
-        loss_max_iters.backward()
-        for n, p in net.named_parameters():
-            if "recur" in n:
-                p.grad *= (1/max_iters)
-    if alpha > 0:
-        loss_progressive.backward()
-        for n, p in net.named_parameters():
-            if "recur" in n:
-                p.grad *= (1/k)
-    return loss_max_iters + loss_progressive
 
 
 def get_output_for_prog_loss(inputs, max_iters, net):
@@ -103,7 +75,6 @@ def train_progressive(net, loaders, train_setup, device):
     k = 0
     problem = train_setup.problem
     clip = train_setup.clip
-    throttle = train_setup.throttle
     criterion = torch.nn.CrossEntropyLoss(reduction="none")
 
     train_loss = 0
@@ -146,10 +117,8 @@ def train_progressive(net, loaders, train_setup, device):
         loss_max_iters_mean = loss_max_iters.mean()
         loss_progressive_mean = loss_progressive.mean()
 
-        if throttle:
-            loss = do_scaled_backward(net, loss_max_iters_mean, loss_progressive_mean, alpha, k, max_iters)
-        else:
-            loss = do_unscaled_backward(loss_max_iters_mean, loss_progressive_mean, alpha)
+        loss = (1 - alpha) * loss_max_iters_mean + alpha * loss_progressive_mean
+        loss.backward()
 
         if clip is not None:
             torch.nn.utils.clip_grad_norm_(net.parameters(), clip)
