@@ -1,11 +1,13 @@
-# DeepThinking 
+# Deep Thinking Systems
 A centralized repository for deep thinking projects. Developed collaboratively by Avi Schwarzschild, Eitan Borgnia, Arpit Bansal, Zeyad Emam, and Jonas Geiping, all at the University of Maryland. This repository contains the official implementation of DeepThinking Networks (DT nets), including architectures with recall and a training routine with the progressive loss term. Much of the structure of this repository is based on the code in [Easy-To-Hard](http://github.com/aks2203/easy-to-hard). In fact, this repository is capable of executing all the same experiments and should be used instead. Our work on thinking systems is availble in two papers:
 
 [End-to-end Algorithm Synthesis with Recurrent Networks: Logical Extrapolation Without Overthinking](https://arxiv.org/abs/2202.05826)
 
 [Can You Learn an Algorithm? Generalizing from Easy to Hard Problems with Recurrent Networks (NeurIPS '21)](https://proceedings.neurips.cc/paper/2021/file/3501672ebc68a5524629080e3ef60aef-Paper.pdf) 
 
-February 11, 2022: Code initially realsed with our paper on Arxiv (link will be added when it posts). Several features, including some trained models will be added in the comming weeks.
+### Notes:
+
+February 11, 2022: Code initially realsed with our paper on Arxiv. Several features, including some trained models will be added in the comming weeks.
 
 ## Citing Our Work
 To cite our work, please reference the appropriate paper.
