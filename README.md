@@ -7,7 +7,9 @@ A centralized repository for deep thinking projects. Developed collaboratively b
 
 ### Notes:
 
-February 11, 2022: Code initially realsed with our paper on Arxiv. Several features, including some trained models will be added in the comming weeks.
+February 21, 2022: Pretrained models added to [our drive](https://drive.google.com/drive/u/1/folders/1QzLt_9n2sNYrH7r8an0WMh4LnsKyzY7h).
+
+February 11, 2022: Code initially realsed with our paper on [Arxiv](https://arxiv.org/abs/2202.05826). Several features, including some trained models will be added in the comming weeks.
 
 ## Citing Our Work
 To cite our work, please reference the appropriate paper.
@@ -92,6 +94,10 @@ For testing, you can run the following commandline argument to specify the locat
 ```$ python test_model.py name=<path_to_exp>```
 
 This creates another unique `run_id` adjective-Name combination (different from the one created during training) and the results are saved in `outputs/<path_to_exp>/testing-<run_id>/stats.json`.
+
+### Download Pretrained Models
+
+For getting started without training models from scratch, you can download a checkpoint for any of the three problems. See [our project drive](https://drive.google.com/drive/folders/1QzLt_9n2sNYrH7r8an0WMh4LnsKyzY7h?usp=sharing). The folder `training-roupy-Ambr` contains the output (including a checkpoint) from training a DT-net with recall and progressive loss on the 32-bit Prefix Sum dataset. The folder `training-rusty-Tayla` contains the output (including a checkpoint) from training a DT-net with recall and progressive loss on the 9x9 Mazes. Finally, the folder `training-mansard-Janean` contains the output (including a checkpoint) from training a DT-net with recall and progressive loss on the 0-600K Chess Puzzles dataset. Download those folders and pass their paths to `test_model.py` using the syntax above to see how they perform on various test sets.
 
 ## Analysis
 
