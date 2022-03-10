@@ -28,6 +28,8 @@ def test(net, loaders, mode, iters, problem, device):
             accuracy = test_default(net, loader, iters, problem, device)
         elif mode == "max_conf":
             accuracy = test_max_conf(net, loader, iters, problem, device)
+        elif mode == "convergence":
+            accuracy = test_convergence(net, loader, iters, problem, device)
         else:
             raise ValueError(f"{ic.format()}: test_{mode}() not implemented.")
         accs.append(accuracy)
@@ -116,3 +118,54 @@ def test_max_conf(net, testloader, iters, problem, device):
     for ite in iters:
         ret_acc[ite] = accuracy[ite-1].item()
     return ret_acc
+
+
+def test_convergence(net, testloader, iters, problem, device):
+    max_iters = max(iters)
+    net.train()
+    corrects = torch.zeros(1)
+    total = 0
+
+    with torch.no_grad():
+        for inputs, targets in tqdm(testloader, leave=False):
+            inputs, targets = inputs.to(device), targets.to(device)
+            total += targets.size(0)
+            old_outputs, interim_thought = net(inputs, iters_to_do=1)
+            done = False
+            ite = 1
+            while ite < max_iters and not done:
+                new_outputs, interim_thought = net(inputs,
+                                                   iters_elapsed=ite,
+                                                   iters_to_do=1,
+                                                   interim_thought=interim_thought)
+
+                # for each input, decide whether to stop
+                old_predicted = old_outputs.argmax(1)
+                new_predicted = new_outputs.argmax(1)
+                stop_here = torch.sum(torch.abs(new_predicted - old_predicted), dim=1) == 0
+
+                # count accuracy on inputs that stop here
+                if torch.any(stop_here):
+                    predicted_here = get_predicted(inputs[stop_here], new_outputs[stop_here], problem)
+                    targets_here = targets[stop_here].view(targets[stop_here].size(0), -1)
+                    corrects[0] += torch.amin(predicted_here == targets_here, dim=[1]).sum().item()
+                # update running variables
+                if torch.any(~stop_here):
+                    # print("Some more to do")
+                    inputs = inputs[~stop_here]
+                    targets = targets[~stop_here]
+                    interim_thought = interim_thought[~stop_here]
+                    old_outputs = new_outputs[~stop_here]
+                else:
+                    done = True
+                ite += 1
+            print(ite)
+            # break
+
+    accuracy = 100.0 * corrects / total
+    ret_acc = {1: accuracy.item()}
+    return ret_acc
+
+
+
+
