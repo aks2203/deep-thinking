@@ -149,9 +149,9 @@ def test_convergence(net, testloader, iters, problem, device):
                     predicted_here = get_predicted(inputs[stop_here], new_outputs[stop_here], problem)
                     targets_here = targets[stop_here].view(targets[stop_here].size(0), -1)
                     corrects[0] += torch.amin(predicted_here == targets_here, dim=[1]).sum().item()
+
                 # update running variables
                 if torch.any(~stop_here):
-                    # print("Some more to do")
                     inputs = inputs[~stop_here]
                     targets = targets[~stop_here]
                     interim_thought = interim_thought[~stop_here]
@@ -159,8 +159,6 @@ def test_convergence(net, testloader, iters, problem, device):
                 else:
                     done = True
                 ite += 1
-            print(ite)
-            # break
 
     accuracy = 100.0 * corrects / total
     ret_acc = {1: accuracy.item()}
