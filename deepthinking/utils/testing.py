@@ -36,6 +36,15 @@ def test(net, loaders, mode, iters, problem, device):
     return accs
 
 
+def get_confidence(inputs, outputs, problem):
+    outputs = torch.nn.Softmax(dim=1)(outputs.clone())
+    confidence = outputs[:, 1]
+    confidence = confidence.view(confidence.size(0), -1)
+    if problem == "mazes":
+        confidence = confidence * (inputs.max(1)[0].view(inputs.size(0), -1))
+    return confidence
+
+
 def get_predicted(inputs, outputs, problem):
     outputs = outputs.clone()
     predicted = outputs.argmax(1)
@@ -132,7 +141,7 @@ def test_convergence(net, testloader, iters, problem, device):
             inputs, targets = inputs.to(device), targets.to(device)
             total += targets.size(0)
             old_outputs, interim_thought = net(inputs, iters_to_do=1)
-            old_predicted = get_predicted(inputs, old_outputs, problem)
+            old_confidence = get_confidence(inputs, old_outputs, problem)
             done = False
             ite = 1
             while ite < max_iters and not done:
@@ -141,13 +150,16 @@ def test_convergence(net, testloader, iters, problem, device):
                                                    iters_to_do=1,
                                                    interim_thought=interim_thought)
 
+                #     This threshold (1e-3) could be tuned, or perhaps set differently for
+                #     each problem. For now, this is a reasonable choice for the three problems
+                #     we have implmented (-Avi, Mar 15, 2022)
                 # for each input, decide whether to stop
-                new_predicted = get_predicted(inputs, new_outputs, problem)
-                stop_here = torch.sum(torch.abs(new_predicted - old_predicted), dim=1) == 0
+                new_confidence = get_confidence(inputs, new_outputs, problem)
+                stop_here = torch.mean(torch.abs(new_confidence - old_confidence), dim=1) <= 1e-3
 
                 # count accuracy on inputs that stop here
                 if torch.any(stop_here):
-                    predicted_here = new_predicted[stop_here]
+                    predicted_here = get_predicted(inputs[stop_here], new_outputs[stop_here], problem)
                     targets_here = targets[stop_here].view(targets[stop_here].size(0), -1)
                     corrects[0] += torch.amin(predicted_here == targets_here, dim=[1]).sum().item()
 
@@ -156,10 +168,11 @@ def test_convergence(net, testloader, iters, problem, device):
                     inputs = inputs[~stop_here]
                     targets = targets[~stop_here]
                     interim_thought = interim_thought[~stop_here]
-                    old_predicted = new_predicted[~stop_here]
+                    old_confidence = new_confidence[~stop_here]
                 else:
                     done = True
                 ite += 1
+            print(ite, 100.0*corrects[0]/total)
             if ite > max_iters_used:
                 max_iters_used = ite
 
