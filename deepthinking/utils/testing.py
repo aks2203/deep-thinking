@@ -122,6 +122,7 @@ def test_max_conf(net, testloader, iters, problem, device):
 
 def test_convergence(net, testloader, iters, problem, device):
     max_iters = max(iters)
+    max_iters_used = 0
     net.train()
     corrects = torch.zeros(1)
     total = 0
@@ -131,6 +132,7 @@ def test_convergence(net, testloader, iters, problem, device):
             inputs, targets = inputs.to(device), targets.to(device)
             total += targets.size(0)
             old_outputs, interim_thought = net(inputs, iters_to_do=1)
+            old_predicted = get_predicted(inputs, old_outputs, problem)
             done = False
             ite = 1
             while ite < max_iters and not done:
@@ -140,13 +142,12 @@ def test_convergence(net, testloader, iters, problem, device):
                                                    interim_thought=interim_thought)
 
                 # for each input, decide whether to stop
-                old_predicted = old_outputs.argmax(1)
-                new_predicted = new_outputs.argmax(1)
+                new_predicted = get_predicted(inputs, new_outputs, problem)
                 stop_here = torch.sum(torch.abs(new_predicted - old_predicted), dim=1) == 0
 
                 # count accuracy on inputs that stop here
                 if torch.any(stop_here):
-                    predicted_here = get_predicted(inputs[stop_here], new_outputs[stop_here], problem)
+                    predicted_here = new_predicted[stop_here]
                     targets_here = targets[stop_here].view(targets[stop_here].size(0), -1)
                     corrects[0] += torch.amin(predicted_here == targets_here, dim=[1]).sum().item()
 
@@ -155,13 +156,15 @@ def test_convergence(net, testloader, iters, problem, device):
                     inputs = inputs[~stop_here]
                     targets = targets[~stop_here]
                     interim_thought = interim_thought[~stop_here]
-                    old_outputs = new_outputs[~stop_here]
+                    old_predicted = new_predicted[~stop_here]
                 else:
                     done = True
                 ite += 1
+            if ite > max_iters_used:
+                max_iters_used = ite
 
     accuracy = 100.0 * corrects / total
-    ret_acc = {1: accuracy.item()}
+    ret_acc = {max_iters_used: accuracy.item()}
     return ret_acc
 
 

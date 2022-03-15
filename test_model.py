@@ -38,7 +38,6 @@ def main(cfg: DictConfig):
     log = logging.getLogger()
     log.info("\n_________________________________________________\n")
     log.info("test_model.py main() running.")
-    log.info(OmegaConf.to_yaml(cfg))
 
     training_args = OmegaConf.load(os.path.join(cfg.problem.model.model_path, ".hydra/config.yaml"))
     cfg_keys_to_load = [("hyp", "alpha"),
