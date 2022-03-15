@@ -172,7 +172,6 @@ def test_convergence(net, testloader, iters, problem, device):
                 else:
                     done = True
                 ite += 1
-            print(ite, 100.0*corrects[0]/total)
             if ite > max_iters_used:
                 max_iters_used = ite
 
