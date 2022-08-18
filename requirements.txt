@@ -2,7 +2,7 @@ chess==1.6.1
 comet-ml==3.13.2
 easy-to-hard-data==1.0.0
 einops~=0.3.2
-hydra-core=1.1.1
+hydra-core==1.1.1
 icecream~=2.1.1
 matplotlib~=3.5.0
 numpy~=1.21.4
