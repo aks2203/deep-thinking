@@ -16,11 +16,10 @@ To cite our work, please reference the appropriate paper.
 ```
 @misc{bansal2022endtoend,
       title={End-to-end Algorithm Synthesis with Recurrent Networks: Logical Extrapolation Without Overthinking}, 
-      author={Arpit Bansal and Avi Schwarzschild and Eitan Borgnia and Zeyad Emam and Furong Huang and Micah Goldblum and Tom Goldstein},
-      year={2022},
-      eprint={2202.05826},
-      archivePrefix={arXiv},
-      primaryClass={cs.LG}
+      author={Bansal, Aprit and Schwarzschild, Avi and Borgnia, Eitan and Emam, Zeyad and Huang, Furong and Goldblum, Micah and Goldstein, Tom},
+      journal={Advances in Neural Information Processing Systems},
+      volume={34},
+      year={2021}
 }
 ```
 
