@@ -19,7 +19,7 @@ To cite our work, please reference the appropriate paper.
       author={Bansal, Aprit and Schwarzschild, Avi and Borgnia, Eitan and Emam, Zeyad and Huang, Furong and Goldblum, Micah and Goldstein, Tom},
       journal={Advances in Neural Information Processing Systems},
       volume={34},
-      year={2021}
+      year={2022}
 }
 ```
 
