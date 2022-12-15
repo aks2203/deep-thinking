@@ -14,12 +14,12 @@ February 11, 2022: Code initially realsed with our paper on [Arxiv](https://arxi
 ## Citing Our Work
 To cite our work, please reference the appropriate paper.
 ```
-@misc{bansal2022endtoend,
-      title={End-to-end Algorithm Synthesis with Recurrent Networks: Logical Extrapolation Without Overthinking}, 
-      author={Bansal, Aprit and Schwarzschild, Avi and Borgnia, Eitan and Emam, Zeyad and Huang, Furong and Goldblum, Micah and Goldstein, Tom},
-      journal={Advances in Neural Information Processing Systems},
-      volume={34},
-      year={2022}
+@article{bansal2022endtoend,
+  title={End-to-end Algorithm Synthesis with Recurrent Networks: Logical Extrapolation Without Overthinking}, 
+  author={Bansal, Aprit and Schwarzschild, Avi and Borgnia, Eitan and Emam, Zeyad and Huang, Furong and Goldblum, Micah and Goldstein, Tom},
+  journal={Advances in Neural Information Processing Systems},
+  volume={35},
+  year={2022}
 }
 ```
 
