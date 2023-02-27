@@ -76,6 +76,7 @@ def main(cfg: DictConfig):
     else:
         test_iterations = list(range(cfg.problem.model.test_iterations["low"],
                                      cfg.problem.model.test_iterations["high"] + 1))
+    # import ipdb; ipdb.set_trace()
 
     if cfg.quick_test:
         test_acc = dt.test(net, [loaders["test"]], cfg.problem.hyp.test_mode, test_iterations, cfg.problem.name, device)

@@ -63,7 +63,6 @@ def test_default(net, testloader, iters, problem, device):
             inputs, targets = inputs.to(device), targets.to(device)
 
             all_outputs = net(inputs, iters_to_do=max_iters)
-
             for i in range(all_outputs.size(1)):
                 outputs = all_outputs[:, i]
                 predicted = get_predicted(inputs, outputs, problem)
@@ -71,7 +70,6 @@ def test_default(net, testloader, iters, problem, device):
                 corrects[i] += torch.amin(predicted == targets, dim=[1]).sum().item()
 
             total += targets.size(0)
-
     accuracy = 100.0 * corrects / total
     ret_acc = {}
     for ite in iters:

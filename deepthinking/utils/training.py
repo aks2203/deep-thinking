@@ -37,6 +37,7 @@ class TrainingSetup:
     alpha: "typing.Any"
     max_iters: "typing.Any"
     problem: "typing.Any"
+    late_predictions: "typing.Any"
 
 
 def get_output_for_prog_loss(inputs, max_iters, net):
@@ -48,10 +49,12 @@ def get_output_for_prog_loss(inputs, max_iters, net):
 
     if n > 0:
         _, interim_thought = net(inputs, iters_to_do=n)
-        interim_thought = interim_thought.detach()
+        if isinstance(interim_thought, tuple):
+            interim_thought = (interim_thought[0].detach(), interim_thought[1].detach())
+        else:
+            interim_thought = interim_thought.detach()
     else:
         interim_thought = None
-
     outputs, _ = net(inputs, iters_elapsed=n, iters_to_do=k, interim_thought=interim_thought)
     return outputs, k
 
@@ -75,8 +78,11 @@ def train_progressive(net, loaders, train_setup, device):
     k = 0
     problem = train_setup.problem
     clip = train_setup.clip
+    # ce_weight = torch.Tensor([1, 7])
+    # if torch.cuda.is_available():
+    #     ce_weight = ce_weight.cuda()
+    # criterion = torch.nn.CrossEntropyLoss(weight=ce_weight, reduction="none")
     criterion = torch.nn.CrossEntropyLoss(reduction="none")
-
     train_loss = 0
     correct = 0
     total = 0
@@ -102,9 +108,22 @@ def train_progressive(net, loaders, train_setup, device):
         # get progressive loss if alpha is not 0 (if it is 0, this loss term is not used
         # so we save time by setting it equal to 0).
         if alpha != 0:
-            outputs, k = get_output_for_prog_loss(inputs, max_iters, net)
-            outputs = outputs.view(outputs.size(0), outputs.size(1), -1)
-            loss_progressive = criterion(outputs, targets)
+            if train_setup.late_predictions:
+                n = randrange(max(1, max_iters-10), max_iters)
+                # do k iterations using intermediate features as input
+                k = randrange(1, 5)
+                outputs_n_k, all_outputs_n_k = net(inputs, iters_to_do=n+k)
+                all_outputs_n_k = all_outputs_n_k.view(all_outputs_n_k.size(0),
+                                                        all_outputs_n_k.size(1),
+                                                        all_outputs_n_k.size(2), -1)
+                losses_n_k = [criterion(all_outputs_n_k[:, ii], targets) for ii in range(n, n+k)]
+                loss_progressive = sum(losses_n_k)
+                # outputs_n_k = outputs_n_k.view(outputs_n_k.size(0), outputs_n_k.size(1), -1)
+                # loss_progressive = criterion(outputs_n_k, targets)
+            else:
+                outputs, k = get_output_for_prog_loss(inputs, max_iters, net)
+                outputs = outputs.view(outputs.size(0), outputs.size(1), -1)
+                loss_progressive = criterion(outputs, targets)
         else:
             loss_progressive = torch.zeros_like(targets).float()
 
@@ -113,7 +132,6 @@ def train_progressive(net, loaders, train_setup, device):
             loss_max_iters = loss_max_iters[mask > 0]
             loss_progressive = (loss_progressive * mask)
             loss_progressive = loss_progressive[mask > 0]
-
         loss_max_iters_mean = loss_max_iters.mean()
         loss_progressive_mean = loss_progressive.mean()
 
