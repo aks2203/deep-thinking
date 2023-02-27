@@ -14,7 +14,7 @@
 
 from torch import nn
 import torch.nn.functional as F
-
+from .loc_rnn_layer import LocRNNLayer
 
 class BasicBlock1D(nn.Module):
     """Basic residual block class 1D"""
@@ -67,4 +67,17 @@ class BasicBlock2D(nn.Module):
         out = self.gn2(self.conv2(out))
         out += self.shortcut(x)
         out = F.relu(out)
+        return out
+
+
+class LocRNNBlock2D(nn.Module):
+    """LocRNN block"""
+
+    def __init__(self, planes, timesteps, recall=False):
+        super().__init__()
+        self.rnn = LocRNNLayer(planes, planes, timesteps=timesteps, recall=recall)
+
+
+    def forward(self, x, iters_to_do, interim_thought=None, stepwise_predictions=None, image=None):
+        out = self.rnn(x, iters_to_do, interim_thought, stepwise_predictions, image)
         return out

@@ -13,7 +13,7 @@ import torch
 from torch import nn
 
 from .blocks import BasicBlock2D as BasicBlock
-
+from .blocks import LocRNNBlock2D as LocRNNBlock
 # Ignore statemenst for pylint:
 #     Too many branches (R0912), Too many statements (R0915), No member (E1101),
 #     Not callable (E1102), Invalid name (C0103), No exception (W0702)
@@ -36,11 +36,16 @@ class DTNet(nn.Module):
                                 stride=1, padding=1, bias=False)
 
         recur_layers = []
-        if recall:
-            recur_layers.append(conv_recall)
-
-        for i in range(len(num_blocks)):
-            recur_layers.append(self._make_layer(block, width, num_blocks[i], stride=1))
+        if block == LocRNNBlock:
+            recur_layers.append(block(width, timesteps=kwargs['max_iters'], recall=self.recall))
+            self.block_type = "locrnn"
+        else:
+            if recall:
+                recur_layers.append(conv_recall)
+            
+            for i in range(len(num_blocks)):
+                recur_layers.append(self._make_layer(block, width, num_blocks[i], stride=1))
+            self.block_type = "basicblock"
 
         head_conv1 = nn.Conv2d(width, 32, kernel_size=3,
                                stride=1, padding=1, bias=False)
@@ -50,7 +55,11 @@ class DTNet(nn.Module):
                                stride=1, padding=1, bias=False)
 
         self.projection = nn.Sequential(proj_conv, nn.ReLU())
-        self.recur_block = nn.Sequential(*recur_layers)
+        if self.block_type != "locrnn":
+            self.recur_block = nn.Sequential(*recur_layers)
+        else:
+            self.recur_block = recur_layers[0]
+
         self.head = nn.Sequential(head_conv1, nn.ReLU(),
                                   head_conv2, nn.ReLU(),
                                   head_conv3)
@@ -62,25 +71,50 @@ class DTNet(nn.Module):
             layers.append(block(self.width, planes, strd, group_norm=self.group_norm))
             self.width = planes * block.expansion
         return nn.Sequential(*layers)
-
+    
     def forward(self, x, iters_to_do, interim_thought=None, **kwargs):
+        if self.block_type == "locrnn":
+            return self.forward_locrnn(x, iters_to_do, interim_thought)
+        else:
+            return self.forward_dtnet(x, iters_to_do, interim_thought)
+    
+    def forward_locrnn(self, x, iters_to_do, interim_thought=None, return_hidden=False, **kwargs):
+        all_outputs = torch.zeros((x.size(0), iters_to_do, 2, x.size(2), x.size(3))).to(x.device)
+        
+        out = self.projection(x)
+        inter_outputs = self.recur_block(out, iters_to_do, 
+                                            interim_thought=interim_thought, 
+                                            stepwise_predictions=True,
+                                            image=x)
+        for i in range(iters_to_do):
+            out = self.head(inter_outputs[0][i])
+            all_outputs[:, i] = out
+        if self.training:
+            return out, all_outputs
+        if return_hidden:
+            return all_outputs, inter_outputs
+        return all_outputs
+
+    def forward_dtnet(self, x, iters_to_do, interim_thought=None, return_hidden=False, **kwargs):
         initial_thought = self.projection(x)
 
         if interim_thought is None:
             interim_thought = initial_thought
 
         all_outputs = torch.zeros((x.size(0), iters_to_do, 2, x.size(2), x.size(3))).to(x.device)
-
+        inter_outputs = []
         for i in range(iters_to_do):
             if self.recall:
                 interim_thought = torch.cat([interim_thought, x], 1)
             interim_thought = self.recur_block(interim_thought)
+            inter_outputs.append(interim_thought)
             out = self.head(interim_thought)
             all_outputs[:, i] = out
 
         if self.training:
             return out, interim_thought
-
+        if return_hidden:
+            return all_outputs, inter_outputs
         return all_outputs
 
 
@@ -98,3 +132,6 @@ def dt_net_gn_2d(width, **kwargs):
 
 def dt_net_recall_gn_2d(width, **kwargs):
     return DTNet(BasicBlock, [2], width=width, in_channels=kwargs["in_channels"], recall=True, group_norm=True)
+
+def locrnn_2d(width, **kwargs):
+    return DTNet(LocRNNBlock, [1], width=width, in_channels=kwargs["in_channels"], max_iters=kwargs['max_iters'])
