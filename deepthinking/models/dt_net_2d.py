@@ -134,4 +134,7 @@ def dt_net_recall_gn_2d(width, **kwargs):
     return DTNet(BasicBlock, [2], width=width, in_channels=kwargs["in_channels"], recall=True, group_norm=True)
 
 def locrnn_2d(width, **kwargs):
-    return DTNet(LocRNNBlock, [1], width=width, in_channels=kwargs["in_channels"], max_iters=kwargs['max_iters'])
+    return DTNet(LocRNNBlock, [1], width=width, in_channels=kwargs["in_channels"], max_iters=kwargs['max_iters'], recall=False)
+
+def locrnn_2d_recall(width, **kwargs):
+    return DTNet(LocRNNBlock, [1], width=width, in_channels=kwargs["in_channels"], max_iters=kwargs['max_iters'], recall=True)
