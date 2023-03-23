@@ -1,0 +1,7 @@
+model: locrnn_2d_recall
+model_path:
+width: 128
+max_iters: 30
+test_iterations:
+  low: 30
+  high: 40

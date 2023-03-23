@@ -167,6 +167,9 @@ def locrnn_2d_x_to_h(width, **kwargs):
 def locrnn_2d_recall(width, **kwargs):
     return DTNet(LocRNNBlock, [1], width=width, in_channels=kwargs["in_channels"], max_iters=kwargs['max_iters'], recall=True, x_to_h=True)
 
+def locrnn_2d_recall_splitgate(width, **kwargs):
+    return DTNet(LocRNNBlock, [1], width=width, in_channels=kwargs["in_channels"], max_iters=kwargs['max_iters'], recall=True, x_to_h=True, split_gate=True)
+
 def locrnn_2d_recall_x_to_h(width, **kwargs):
     return DTNet(LocRNNBlock, [1], width=width, in_channels=kwargs["in_channels"], max_iters=kwargs['max_iters'], recall=True, x_to_h=True)
 

@@ -21,6 +21,7 @@ class LocRNNcell(nn.Module):
                  device='cuda',
                  recall=True,
                  x_to_h=False,
+                 split_gate=False,
                  ):
         super(LocRNNcell, self).__init__()
         self.in_channels = in_channels
@@ -29,15 +30,19 @@ class LocRNNcell(nn.Module):
         else:
             self.hidden_dim = hidden_dim
         # recurrent gates computation
-        self.recall = False
+        self.recall = recall
+        self.split_gate = split_gate
         self.x_to_h = x_to_h
-        if recall:
+        if self.recall:
             self.conv_recall = nn.Conv2d(self.hidden_dim + 3, self.hidden_dim, 3, 
                                         bias=False, padding=1, stride=1)
-            self.recall=True
-        
-            self.g_exc = nn.Conv2d(self.in_channels+self.hidden_dim, self.hidden_dim, 1, bias=False)
-            self.g_inh = nn.Conv2d(self.in_channels+self.hidden_dim, self.hidden_dim, 1, bias=False)
+            if self.split_gate:
+                self.g_exc_forget = nn.Conv2d(self.in_channels+self.hidden_dim, self.hidden_dim, 1, bias=False)
+                self.g_exc_reset = nn.Conv2d(self.in_channels+self.hidden_dim, self.hidden_dim, 1, bias=False)
+                self.g_inh = nn.Conv2d(self.in_channels+self.hidden_dim, self.hidden_dim, 1, bias=False)
+            else:
+                self.g_exc = nn.Conv2d(self.in_channels+self.hidden_dim, self.hidden_dim, 1, bias=False)
+                self.g_inh = nn.Conv2d(self.in_channels+self.hidden_dim, self.hidden_dim, 1, bias=False)
             self.ln_out_e = nn.GroupNorm(num_groups=1, num_channels=self.hidden_dim)
             self.ln_out_i = nn.GroupNorm(num_groups=1, num_channels=self.hidden_dim)
 
@@ -55,6 +60,7 @@ class LocRNNcell(nn.Module):
             self.e_nl = nn.ReLU()
             self.i_nl = nn.ReLU()
         else:
+            # DEPRECATED, DONOT USE
             # recurrent gates computation
             self.g_exc_x = nn.Conv2d(self.in_channels, self.hidden_dim, 1)
             self.ln_e_x = nn.GroupNorm(num_groups=1, num_channels=self.hidden_dim)
@@ -91,7 +97,11 @@ class LocRNNcell(nn.Module):
         exc, inh = hidden
         if self.recall:
             input = self.conv_recall(input)
-        g_e = torch.sigmoid(self.g_exc(torch.cat([input, exc], 1)))
+        if self.split_gate:
+            g_e_forget = torch.sigmoid(self.g_exc_forget(torch.cat([input, exc], 1)))
+            g_e_reset = torch.sigmoid(self.g_exc_reset(torch.cat([input, exc], 1)))
+        else:
+            g_e = torch.sigmoid(self.g_exc(torch.cat([input, exc], 1)))
         g_i = torch.sigmoid(self.g_inh(torch.cat([input, inh], 1)))
         if self.x_to_h:
             e_hat_t = self.e_nl(
@@ -104,7 +114,10 @@ class LocRNNcell(nn.Module):
         else:
             e_hat_t = self.e_nl(self.w_exc_ei(torch.cat((exc, inh), 1)))
             i_hat_t = self.i_nl(self.w_inh_ei(torch.cat((exc, inh), 1)))
-        exc = self.e_nl(self.ln_out_e(g_e * e_hat_t + (1 - g_e) * exc))
+        if self.split_gate:
+            exc = self.e_nl(self.ln_out_e(g_e_reset * e_hat_t + g_e_forget * exc))
+        else:
+            exc = self.e_nl(self.ln_out_e(g_e * e_hat_t + (1 - g_e) * exc))
         inh = self.i_nl(self.ln_out_i(g_i * i_hat_t + (1 - g_i) * inh))
         return (exc, inh)
 
@@ -119,6 +132,7 @@ class LocRNNLayer(nn.Module):
                  device='cuda',
                  recall=True,
                  x_to_h=False,
+                 split_gate=False,
                  ):
         super(LocRNNLayer, self).__init__()
         self.in_channels = in_channels
@@ -135,7 +149,8 @@ class LocRNNLayer(nn.Module):
                                     inh_fsize=self.inh_fsize,
                                     device=self.device,
                                     recall=recall,
-                                    x_to_h=self.x_to_h)
+                                    x_to_h=self.x_to_h,
+                                    split_gate=split_gate)
 
     def forward(self, input, iters_to_do, interim_thought=None, stepwise_predictions=False, image=None):
         outputs_e = []
