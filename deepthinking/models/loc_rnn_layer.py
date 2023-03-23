@@ -20,6 +20,7 @@ class LocRNNcell(nn.Module):
                  inh_fsize=5,
                  device='cuda',
                  recall=True,
+                 x_to_h=False,
                  ):
         super(LocRNNcell, self).__init__()
         self.in_channels = in_channels
@@ -29,10 +30,9 @@ class LocRNNcell(nn.Module):
             self.hidden_dim = hidden_dim
         # recurrent gates computation
         self.recall = False
+        self.x_to_h = x_to_h
         if recall:
-            self.conv_recall_e = nn.Conv2d(self.hidden_dim + 3, self.hidden_dim, 3, 
-                                        bias=False, padding=1, stride=1)
-            self.conv_recall_i = nn.Conv2d(self.hidden_dim + 3, self.hidden_dim, 3, 
+            self.conv_recall = nn.Conv2d(self.hidden_dim + 3, self.hidden_dim, 3, 
                                         bias=False, padding=1, stride=1)
             self.recall=True
         
@@ -41,9 +41,10 @@ class LocRNNcell(nn.Module):
             self.ln_out_e = nn.GroupNorm(num_groups=1, num_channels=self.hidden_dim)
             self.ln_out_i = nn.GroupNorm(num_groups=1, num_channels=self.hidden_dim)
 
-            # feedforward stimulus drive
-            self.w_exc_x = nn.Conv2d(self.in_channels, self.hidden_dim, 1)
-            self.w_inh_x = nn.Conv2d(self.in_channels, self.hidden_dim, 1)
+            if self.x_to_h:
+                # feedforward stimulus drive
+                self.w_exc_x = nn.Conv2d(self.in_channels, self.hidden_dim, 1)
+                self.w_inh_x = nn.Conv2d(self.in_channels, self.hidden_dim, 1)
             
             # horizontal connections (e->e, i->e, i->i, e->i)
             self.w_exc_ei = nn.Conv2d(
@@ -70,9 +71,10 @@ class LocRNNcell(nn.Module):
 
             self.ln_out = nn.GroupNorm(
                 num_groups=1, num_channels=self.hidden_dim)
-            # feedforward stimulus drive
-            self.w_exc_x = nn.Conv2d(self.in_channels, self.hidden_dim, 1)
-            self.w_inh_x = nn.Conv2d(self.in_channels, self.hidden_dim, 1)
+            if self.x_to_h:
+                # feedforward stimulus drive
+                self.w_exc_x = nn.Conv2d(self.in_channels, self.hidden_dim, 1)
+                self.w_inh_x = nn.Conv2d(self.in_channels, self.hidden_dim, 1)
 
             # horizontal connections (e->e, i->e, i->i, e->i)
             self.w_exc_ei = nn.Conv2d(
@@ -85,13 +87,13 @@ class LocRNNcell(nn.Module):
             # nonnegative_weights_init(self.div)
 
         
-    def forward(self, input, hidden, image=None):
+    def forward(self, input, hidden):
         exc, inh = hidden
         if self.recall:
-            exc = self.conv_recall_e(torch.cat((exc, image), 1))
-            inh = self.conv_recall_i(torch.cat((inh, image), 1))
-            g_e = torch.sigmoid(self.g_exc(torch.cat([input, exc], 1)))
-            g_i = torch.sigmoid(self.g_inh(torch.cat([input, inh], 1)))
+            input = self.conv_recall(input)
+        g_e = torch.sigmoid(self.g_exc(torch.cat([input, exc], 1)))
+        g_i = torch.sigmoid(self.g_inh(torch.cat([input, inh], 1)))
+        if self.x_to_h:
             e_hat_t = self.e_nl(
                 self.w_exc_x(input) +
                 self.w_exc_ei(torch.cat((exc, inh), 1)))
@@ -99,25 +101,11 @@ class LocRNNcell(nn.Module):
             i_hat_t = self.i_nl(
                 self.w_inh_x(input) +
                 self.w_inh_ei(torch.cat((exc, inh), 1)))
-
-            exc = self.e_nl(self.ln_out_e(g_e * e_hat_t + (1 - g_e) * exc))
-            inh = self.i_nl(self.ln_out_i(g_i * i_hat_t + (1 - g_i) * inh))
         else:
-            g_exc = torch.sigmoid(self.ln_e_x(self.g_exc_x(
-                input)) + self.ln_e_e(self.g_exc_e(exc)))
-            g_inh = torch.sigmoid(self.ln_i_x(self.g_inh_x(
-                input)) + self.ln_i_i(self.g_inh_i(inh)))
-
-            e_hat_t = torch.relu(
-                self.w_exc_x(input) +
-                self.w_exc_ei(torch.cat((exc, inh), 1)))
-
-            i_hat_t = torch.relu(
-                self.w_inh_x(input) +
-                self.w_inh_ei(torch.cat((exc, inh), 1)))
-
-            exc = torch.relu(self.ln_out_e(g_exc * e_hat_t + (1 - g_exc) * exc))
-            inh = torch.relu(self.ln_out_i(g_inh * i_hat_t + (1 - g_inh) * inh))
+            e_hat_t = self.e_nl(self.w_exc_ei(torch.cat((exc, inh), 1)))
+            i_hat_t = self.i_nl(self.w_inh_ei(torch.cat((exc, inh), 1)))
+        exc = self.e_nl(self.ln_out_e(g_e * e_hat_t + (1 - g_e) * exc))
+        inh = self.i_nl(self.ln_out_i(g_i * i_hat_t + (1 - g_i) * inh))
         return (exc, inh)
 
 
@@ -130,6 +118,7 @@ class LocRNNLayer(nn.Module):
                  timesteps=15,
                  device='cuda',
                  recall=True,
+                 x_to_h=False,
                  ):
         super(LocRNNLayer, self).__init__()
         self.in_channels = in_channels
@@ -139,25 +128,28 @@ class LocRNNLayer(nn.Module):
         self.timesteps = timesteps
         self.device = device
         self.recall = recall
+        self.x_to_h = x_to_h
         self.rnn_cell = LocRNNcell(in_channels=self.in_channels,
                                     hidden_dim=self.hidden_dim,
                                     exc_fsize=self.exc_fsize,
                                     inh_fsize=self.inh_fsize,
                                     device=self.device,
-                                    recall=recall)
+                                    recall=recall,
+                                    x_to_h=self.x_to_h)
 
     def forward(self, input, iters_to_do, interim_thought=None, stepwise_predictions=False, image=None):
         outputs_e = []
         outputs_i = []
+        n, _, h, w = input.shape
         if interim_thought:
             state = (interim_thought[0], interim_thought[1])
+        elif self.x_to_h:
+            state = (torch.zeros(n, self.hidden_dim, h, w).to(self.device),
+                     torch.zeros(n, self.hidden_dim, h, w).to(self.device))
         else:
-            state = (torch.zeros_like(input), torch.zeros_like(input))
-        for rnn_t in range(iters_to_do):
-            if self.recall:
-                state = self.rnn_cell(input, state, image=image)
-            else:
-                state = self.rnn_cell(input, state)
+            state = (input, input)
+        for _ in range(iters_to_do):
+            state = self.rnn_cell(input, state)
             outputs_e += [state[0]]
             outputs_i += [state[1]]
         # use this return in normal training

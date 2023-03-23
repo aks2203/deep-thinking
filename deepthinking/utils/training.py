@@ -78,11 +78,11 @@ def train_progressive(net, loaders, train_setup, device):
     k = 0
     problem = train_setup.problem
     clip = train_setup.clip
-    # ce_weight = torch.Tensor([1, 7])
-    # if torch.cuda.is_available():
-    #     ce_weight = ce_weight.cuda()
-    # criterion = torch.nn.CrossEntropyLoss(weight=ce_weight, reduction="none")
-    criterion = torch.nn.CrossEntropyLoss(reduction="none")
+    ce_weight = torch.Tensor([1, 7])
+    if torch.cuda.is_available():
+        ce_weight = ce_weight.cuda()
+    criterion = torch.nn.CrossEntropyLoss(weight=ce_weight, reduction="none")
+    # criterion = torch.nn.CrossEntropyLoss(reduction="none")
     train_loss = 0
     correct = 0
     total = 0
@@ -121,6 +121,8 @@ def train_progressive(net, loaders, train_setup, device):
                 # outputs_n_k = outputs_n_k.view(outputs_n_k.size(0), outputs_n_k.size(1), -1)
                 # loss_progressive = criterion(outputs_n_k, targets)
             else:
+                if not batch_idx:
+                    print("Training with progressive loss")
                 outputs, k = get_output_for_prog_loss(inputs, max_iters, net)
                 outputs = outputs.view(outputs.size(0), outputs.size(1), -1)
                 loss_progressive = criterion(outputs, targets)

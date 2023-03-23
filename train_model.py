@@ -68,8 +68,7 @@ def main(cfg: DictConfig):
                                    alpha=cfg.problem.hyp.alpha,
                                    max_iters=cfg.problem.model.max_iters,
                                    problem=cfg.problem.name,
-                                   late_predictions=True)
-    print("Using late predictions")
+                                   late_predictions=False)
     ####################################################
 
     ####################################################

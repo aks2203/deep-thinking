@@ -15,6 +15,7 @@
 from torch import nn
 import torch.nn.functional as F
 from .loc_rnn_layer import LocRNNLayer
+from .loc_rnn_ei import LocRNNEILayer
 
 class BasicBlock1D(nn.Module):
     """Basic residual block class 1D"""
@@ -73,15 +74,26 @@ class BasicBlock2D(nn.Module):
 class LocRNNBlock2D(nn.Module):
     """LocRNN block"""
 
-    def __init__(self, planes, timesteps, recall=False):
+    def __init__(self, planes, timesteps, recall=False, x_to_h=False):
         super().__init__()
         self.recall = recall
-        self.rnn = LocRNNLayer(planes, planes, timesteps=timesteps, recall=recall)
+        self.rnn = LocRNNLayer(planes, planes, timesteps=timesteps, recall=recall, x_to_h=x_to_h)
         if not self.recall:
             self.conv1 = nn.Conv2d(planes, planes, kernel_size=3, stride=1, padding=1, bias=False)
 
     def forward(self, x, iters_to_do, interim_thought=None, stepwise_predictions=None, image=None):
         if not self.recall:
             x = self.conv1(x)
+        out = self.rnn(x, iters_to_do, interim_thought, stepwise_predictions, image)
+        return out
+
+
+class LocRNNEIBlock2D(nn.Module):
+    """LocRNN block"""
+    def __init__(self, planes, timesteps):
+        super().__init__()
+        self.rnn = LocRNNEILayer(planes, planes, timesteps=timesteps)
+        
+    def forward(self, x, iters_to_do, interim_thought=None, stepwise_predictions=None, image=None):
         out = self.rnn(x, iters_to_do, interim_thought, stepwise_predictions, image)
         return out

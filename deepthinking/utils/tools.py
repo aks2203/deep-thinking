@@ -57,9 +57,9 @@ def get_dataloaders(problem_args):
         raise ValueError(f"Invalid problem spec. {problem_args.name}")
 
 
-def get_model(model, width, max_iters, in_channels=3):
+def get_model(model, width, max_iters, in_channels=3, x_to_h=False):
     model = model.lower()
-    net = getattr(models, model)(width=width, in_channels=in_channels, max_iters=max_iters)
+    net = getattr(models, model)(width=width, in_channels=in_channels, max_iters=max_iters, x_to_h=x_to_h)
     return net
 
 
