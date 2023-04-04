@@ -29,6 +29,10 @@ class DTNet(nn.Module):
 
         self.recall = recall
         self.x_to_h = kwargs['x_to_h']
+        if 'split_gate' in kwargs.keys():
+            self.split_gate = kwargs['split_gate']
+        else:
+            self.split_gate = False
         self.width = int(width)
         self.group_norm = group_norm
         proj_conv = nn.Conv2d(in_channels, width, kernel_size=3,
@@ -39,7 +43,7 @@ class DTNet(nn.Module):
 
         recur_layers = []
         if block == LocRNNBlock:
-            recur_layers.append(block(width, timesteps=kwargs['max_iters'], recall=self.recall, x_to_h=self.x_to_h))
+            recur_layers.append(block(width, timesteps=kwargs['max_iters'], recall=self.recall, x_to_h=self.x_to_h, split_gate=self.split_gate))
             self.block_type = "locrnn"
         elif block == LocRNNEIBlock:
             recur_layers.append(block(width, timesteps=kwargs['max_iters']))

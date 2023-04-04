@@ -25,6 +25,7 @@ class LocRNNcell(nn.Module):
                  ):
         super(LocRNNcell, self).__init__()
         self.in_channels = in_channels
+        print("Using split gate: ", split_gate)
         if hidden_dim is None:
             self.hidden_dim = in_channels
         else:

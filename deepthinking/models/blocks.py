@@ -74,17 +74,17 @@ class BasicBlock2D(nn.Module):
 class LocRNNBlock2D(nn.Module):
     """LocRNN block"""
 
-    def __init__(self, planes, timesteps, recall=False, x_to_h=False):
+    def __init__(self, planes, timesteps, recall=False, x_to_h=False, split_gate=False):
         super().__init__()
         self.recall = recall
-        self.rnn = LocRNNLayer(planes, planes, timesteps=timesteps, recall=recall, x_to_h=x_to_h)
+        self.rnn = LocRNNLayer(planes, planes, timesteps=timesteps, recall=recall, x_to_h=x_to_h, split_gate=split_gate)
         if not self.recall:
             self.conv1 = nn.Conv2d(planes, planes, kernel_size=3, stride=1, padding=1, bias=False)
 
-    def forward(self, x, iters_to_do, interim_thought=None, stepwise_predictions=None, image=None):
+    def forward(self, x, iters_to_do, interim_thought=None, stepwise_predictions=None):
         if not self.recall:
             x = self.conv1(x)
-        out = self.rnn(x, iters_to_do, interim_thought, stepwise_predictions, image)
+        out = self.rnn(x, iters_to_do, interim_thought, stepwise_predictions)
         return out
 
 

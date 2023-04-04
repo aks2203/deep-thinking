@@ -1,4 +1,4 @@
-model: locrnn_2d_recall
+model: locrnn_2d_recall_splitgate
 model_path:
 width: 128
 max_iters: 30
