@@ -81,10 +81,13 @@ class LocRNNBlock2D(nn.Module):
         if not self.recall:
             self.conv1 = nn.Conv2d(planes, planes, kernel_size=3, stride=1, padding=1, bias=False)
 
-    def forward(self, x, iters_to_do, interim_thought=None, stepwise_predictions=None):
+    def forward(self, x, iters_to_do, interim_thought=None, stepwise_predictions=None, image=None):
         if not self.recall:
             x = self.conv1(x)
-        out = self.rnn(x, iters_to_do, interim_thought, stepwise_predictions)
+        out = self.rnn(x, iters_to_do, 
+                       interim_thought=interim_thought, 
+                       stepwise_predictions=stepwise_predictions, 
+                       image=image)
         return out
 
 
@@ -95,5 +98,8 @@ class LocRNNEIBlock2D(nn.Module):
         self.rnn = LocRNNEILayer(planes, planes, timesteps=timesteps)
         
     def forward(self, x, iters_to_do, interim_thought=None, stepwise_predictions=None, image=None):
-        out = self.rnn(x, iters_to_do, interim_thought, stepwise_predictions, image)
+        out = self.rnn(x, iters_to_do,
+                       interim_thought=interim_thought, 
+                       stepwise_predictions=stepwise_predictions, 
+                       image=image)
         return out

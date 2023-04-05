@@ -109,11 +109,10 @@ class DTNet(nn.Module):
         all_outputs = torch.zeros((x.size(0), iters_to_do, 2, x.size(2), x.size(3))).to(x.device)
         
         out = self.projection(x)
-        if self.recall:
-            out = torch.cat([out, x], 1)
         inter_outputs = self.recur_block(out, iters_to_do, 
                                             interim_thought=interim_thought, 
                                             stepwise_predictions=True,
+                                            image=x,
                                             )
         for i in range(iters_to_do):
             out = self.head(inter_outputs[0][i])
@@ -172,7 +171,7 @@ def locrnn_2d_recall(width, **kwargs):
     return DTNet(LocRNNBlock, [1], width=width, in_channels=kwargs["in_channels"], max_iters=kwargs['max_iters'], recall=True, x_to_h=True)
 
 def locrnn_2d_recall_splitgate(width, **kwargs):
-    return DTNet(LocRNNBlock, [1], width=width, in_channels=kwargs["in_channels"], max_iters=kwargs['max_iters'], recall=True, x_to_h=True, split_gate=True)
+    return DTNet(LocRNNBlock, [1], width=width, in_channels=kwargs["in_channels"], max_iters=kwargs['max_iters'], recall=True, x_to_h=False, split_gate=True)
 
 def locrnn_2d_recall_x_to_h(width, **kwargs):
     return DTNet(LocRNNBlock, [1], width=width, in_channels=kwargs["in_channels"], max_iters=kwargs['max_iters'], recall=True, x_to_h=True)

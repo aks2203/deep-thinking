@@ -94,10 +94,10 @@ class LocRNNcell(nn.Module):
             # nonnegative_weights_init(self.div)
 
         
-    def forward(self, input, hidden):
+    def forward(self, input, hidden, image=None):
         exc, inh = hidden
         if self.recall:
-            input = self.conv_recall(input)
+            exc = self.conv_recall(torch.cat([exc, image], 1))
         if self.split_gate:
             g_e_forget = torch.sigmoid(self.g_exc_forget(torch.cat([input, exc], 1)))
             g_e_reset = torch.sigmoid(self.g_exc_reset(torch.cat([input, exc], 1)))
@@ -153,22 +153,27 @@ class LocRNNLayer(nn.Module):
                                     x_to_h=self.x_to_h,
                                     split_gate=split_gate)
 
-    def forward(self, input, iters_to_do, interim_thought=None, stepwise_predictions=False, image=None):
+    def forward(self, input, iters_to_do, **kwargs):
         outputs_e = []
         outputs_i = []
         n, _, h, w = input.shape
-        if interim_thought:
-            state = (interim_thought[0], interim_thought[1])
-        elif self.x_to_h:
+        if self.x_to_h:
             state = (torch.zeros(n, self.hidden_dim, h, w).to(self.device),
                      torch.zeros(n, self.hidden_dim, h, w).to(self.device))
         else:
             state = (input, input)
+        if 'interim_thought' in kwargs.keys():
+            interim_thought = kwargs['interim_thought']
+            if interim_thought:
+                state = (interim_thought[0], interim_thought[1])
         for _ in range(iters_to_do):
-            state = self.rnn_cell(input, state)
+            if 'image' in kwargs.keys():
+                state = self.rnn_cell(input, state, image=kwargs['image'])
+            else:
+                state = self.rnn_cell(input, state)
             outputs_e += [state[0]]
             outputs_i += [state[1]]
         # use this return in normal training
-        if stepwise_predictions:
+        if 'stepwise_predictions' in kwargs.keys():
             return (outputs_e, outputs_i)
         return (outputs_e[-1], outputs_i[-1])
