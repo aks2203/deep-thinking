@@ -7,12 +7,11 @@ A centralized repository for deep thinking projects. Developed collaboratively b
 
 ### Notes:
 
+May 5, 2022: Code for reproducing perturbation results and a reproducibility summary report, accepted to the Machine Learning Reproducibility Challenge 2022, by Sean McLeish and Long Tran-Thanh from the University of Warwick can be found [here](https://github.com/mcleish7/MLRC-deep-thinking).
+
 February 21, 2022: Pretrained models added to [our drive](https://drive.google.com/drive/u/1/folders/1QzLt_9n2sNYrH7r8an0WMh4LnsKyzY7h).
 
 February 11, 2022: Code initially released with our paper on [Arxiv](https://arxiv.org/abs/2202.05826). Several features, including some trained models will be added in the comming weeks.
-
-May 5, 2022: Code for reproducing perturbation results and a reproducibility summary report, accepted to the Machine Learning Reproducibility Challenge 2022, by Sean McLeish and Long Tran-Thanh from the University of Warwick can be found [here](https://github.com/mcleish7/MLRC-deep-thinking).
-
 
 ## Citing Our Work
 To cite our work, please reference the appropriate paper.
