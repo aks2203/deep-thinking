@@ -9,7 +9,10 @@ A centralized repository for deep thinking projects. Developed collaboratively b
 
 February 21, 2022: Pretrained models added to [our drive](https://drive.google.com/drive/u/1/folders/1QzLt_9n2sNYrH7r8an0WMh4LnsKyzY7h).
 
-February 11, 2022: Code initially realsed with our paper on [Arxiv](https://arxiv.org/abs/2202.05826). Several features, including some trained models will be added in the comming weeks.
+February 11, 2022: Code initially released with our paper on [Arxiv](https://arxiv.org/abs/2202.05826). Several features, including some trained models will be added in the comming weeks.
+
+May 5, 2022: Code for reproducing perturbation results and a reproducibility summary report, accepted to the Machine Learning Reproducibility Challenge 2022, by Sean McLeish and Long Tran-Thanh from the University of Warwick can be found [here](https://github.com/mcleish7/MLRC-deep-thinking).
+
 
 ## Citing Our Work
 To cite our work, please reference the appropriate paper.
@@ -54,7 +57,7 @@ The optional commandline argument `problem.train_data=<N>` determines the data t
 
 ## Saving Protocol (during training)
 
-Each time [train_model.py](train_model.py) is executed, a hash-like adjective-Name combiniation is created and saved as the `run id` for that execution. The `run_id` is used to save checkpoints and results without being able to accidentally overwrite any previous runs with similar hyperparameters. The folder used for saving both checkpoints and results can be chosen using the following command line argument.
+Each time [train_model.py](train_model.py) is executed, a hash-like adjective-Name combination is created and saved as the `run id` for that execution. The `run_id` is used to save checkpoints and results without being able to accidentally overwrite any previous runs with similar hyperparameters. The folder used for saving both checkpoints and results can be chosen using the following command line argument.
 
 ```$ python train_model.py name=<path_to_exp>```
 
@@ -100,7 +103,7 @@ For getting started without training models from scratch, you can download a che
 
 ## Analysis
 
-To generate a pivot table with average accuracies over several trials, [make_table.py](deepthinking/data_analysis/make_table.py) is helpful. The first command line argument (without a flag) points to an ouput directory. All the json results are then read in and averages over similar runs are nicely tabulated. For example, if you run a few trials of `train_model.py` with the same command line arguments, including `name=my_experiment`, then you can run 
+To generate a pivot table with average accuracies over several trials, [make_table.py](deepthinking/data_analysis/make_table.py) is helpful. The first command line argument (without a flag) points to an output directory. All the json results are then read in and averages over similar runs are nicely tabulated. For example, if you run a few trials of `train_model.py` with the same command line arguments, including `name=my_experiment`, then you can run 
 
 ```$ python make_table.py outputs/my_experiment```
 
